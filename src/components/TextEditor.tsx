@@ -1,6 +1,7 @@
 "use client";
 
 import { useEditor, EditorContent } from '@tiptap/react';
+import { Mark, mergeAttributes } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { Image } from '@tiptap/extension-image';
 import { Table } from '@tiptap/extension-table';
@@ -29,6 +30,43 @@ interface TextEditorProps {
   onAddPage?: () => void;
   onSelectPage?: (idx: number) => void;
 }
+
+// ── Custom FontSize Extension ────────────────────────────────────────────────
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    fontSize: {
+      setFontSize: (size: string) => ReturnType;
+      unsetFontSize: () => ReturnType;
+    };
+  }
+}
+
+const FontSize = Mark.create({
+  name: 'fontSize',
+  addOptions() { return { types: ['textStyle'] }; },
+  addAttributes() {
+    return {
+      fontSize: {
+        default: null,
+        parseHTML: element => element.style.fontSize?.replace(/['"]+/g, ''),
+        renderHTML: attributes => {
+          if (!attributes.fontSize) return {};
+          return { style: `font-size: ${attributes.fontSize}` };
+        },
+      },
+    };
+  },
+  parseHTML() { return [{ tag: 'span[style*=font-size]' }]; },
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0];
+  },
+  addCommands() {
+    return {
+      setFontSize: fontSize => ({ chain }) => chain().setMark('fontSize', { fontSize }).run(),
+      unsetFontSize: () => ({ chain }) => chain().unsetMark('fontSize').run(),
+    };
+  },
+});
 
 // ── PageStrip ────────────────────────────────────────────────────────────────
 function PageStrip({ pages, currentIdx, onSelect, onAdd }: {
@@ -326,11 +364,11 @@ function OverlayItem({ overlay, onRemove, onUpdate }: {
 
 // ── Font size menu ────────────────────────────────────────────────────────────
 const FONT_LEVELS = [
-  { label: 'Normal', size: '14px', cmd: 'paragraph' as const },
-  { label: 'Medium', size: '18px', cmd: 'h4' as const },
-  { label: 'Large',  size: '22px', cmd: 'h3' as const },
-  { label: 'XL',     size: '28px', cmd: 'h2' as const },
-  { label: 'XXL',    size: '36px', cmd: 'h1' as const },
+  { label: 'Normal', size: '14px', cmd: '14px' as const },
+  { label: 'Medium', size: '18px', cmd: '18px' as const },
+  { label: 'Large',  size: '22px', cmd: '22px' as const },
+  { label: 'XL',     size: '28px', cmd: '28px' as const },
+  { label: 'XXL',    size: '36px', cmd: '36px' as const },
 ];
 function FontMenu({ onClose, onSelect }: { onClose: () => void; onSelect: (cmd: typeof FONT_LEVELS[0]) => void }) {
   return (
@@ -383,6 +421,7 @@ export default function TextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit,
+      FontSize,
       Image,
       Table.configure({ resizable: false }),
       TableRow,
@@ -434,18 +473,29 @@ export default function TextEditor({
   };
 
   const handleFontSelect = (f: typeof FONT_LEVELS[0]) => {
-    if (f.cmd === 'paragraph') editor?.chain().focus().setParagraph().run();
-    else editor?.chain().focus().toggleHeading({ level: parseInt(f.cmd.replace('h', '')) as 1|2|3|4|5|6 }).run();
+    if (f.cmd === '14px') {
+      editor?.chain().focus().unsetFontSize().run();
+    } else {
+      editor?.chain().focus().setFontSize(f.cmd).run();
+    }
   };
 
   const isBulletActive = editor?.isActive('bulletList') ?? false;
-  const isHeadingActive = FONT_LEVELS.some(f => f.cmd !== 'paragraph' && editor?.isActive('heading', { level: parseInt(f.cmd.replace('h', '')) }));
+  const isHeadingActive = FONT_LEVELS.some(f => f.cmd !== '14px' && editor?.isActive('fontSize', { fontSize: f.cmd }));
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* ── Table border CSS ── */}
       <style>{`
+        .cortex-editor { font-size: 14px; line-height: 1.6; }
+        .cortex-editor p { font-size: 14px; margin: 0 0 1em 0; }
+        .cortex-editor h4 { font-size: 18px; font-weight: 600; margin: 1.2em 0 0.5em 0; line-height: 1.4; }
+        .cortex-editor h3 { font-size: 22px; font-weight: 600; margin: 1.2em 0 0.5em 0; line-height: 1.3; }
+        .cortex-editor h2 { font-size: 28px; font-weight: 700; margin: 1.2em 0 0.5em 0; line-height: 1.2; letter-spacing: -0.01em; }
+        .cortex-editor h1 { font-size: 36px; font-weight: 800; margin: 1em 0 0.5em 0; line-height: 1.1; letter-spacing: -0.02em; }
+        .cortex-editor ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 1em; }
+        .cortex-editor li { margin-bottom: 0.25em; }
         .cortex-editor table { border-collapse: collapse; margin: 12px 0; }
         .cortex-editor td, .cortex-editor th { border: 1.5px solid #c8b89a; padding: 6px 10px; min-width: 60px; }
         .cortex-editor th { background: rgba(200,184,154,0.12); font-weight: 600; color: #d0cde8; }
