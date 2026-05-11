@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cortex-bg: #07070a;
+  --color-cortex-sidebar: #0b0b0f;
+  --color-cortex-surface: #111118;
+  --color-cortex-elevated: #17171f;
+  --color-cortex-border: rgba(255, 255, 255, 0.06);
+  --color-cortex-borderHover: rgba(255, 255, 255, 0.12);
+  --color-cortex-text: #dddaeb;
+  --color-cortex-muted: #6a6780;
+  --color-cortex-faint: #2e2c42;
+  --color-cortex-amber: #f09532;
+  --color-cortex-amberGlow: rgba(240, 149, 50, 0.12);
+  --color-cortex-amberBorder: rgba(240, 149, 50, 0.28);
+  --color-cortex-blue: #6199f5;
+  --color-cortex-purple: #9b7ff0;
+  --color-cortex-green: #4dba84;
+  --color-cortex-red: #e07272;
+
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+@layer base {
+  :root {
+    --background: #07070a;
+    --foreground: #dddaeb;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* App takes full height */
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-cortex-faint);
+  border-radius: 2px;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: .5; }
+  60% { transform: scale(2.2); opacity: 0; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes dash {
+  to { stroke-dashoffset: -30; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: .3; }
+  50% { opacity: .7; }
+}
+
+.pulse-ring {
+  animation: pulse-ring 3s ease-out infinite;
+  transform-origin: center;
+}
+
+.graph-edge {
+  animation: dash 3s linear infinite;
+}
+
+.msg-in {
+  animation: fade-in .25s ease;
+}
+
+.glow {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+
+textarea {
+  font-family: inherit;
+  resize: none;
+  border: none;
+  outline: none;
+  background: none;
+}
+
+input {
+  font-family: inherit;
+  border: none;
+  outline: none;
+  background: none;
+}
