@@ -1,26 +1,82 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { WorkspaceFile } from "@/types";
 import DynamicCanvas, { getFileType } from "@/components/DynamicCanvas";
 import ConsciousnessView from "@/components/ConsciousnessView";
 import { getRelatedFiles } from "@/lib/similarity";
 
-const INITIAL_FILES: WorkspaceFile[] = [
+// ── localStorage helpers ───────────────────────────────────────────────────────
+
+const STORAGE_KEY   = "cortex_workspace_files";
+const PAGES_KEY     = "cortex_pages_map";
+
+type PageEntry = { id: number; content: string; bgType?: 'dotted' | 'lined' | 'plain' | 'white' };
+type PagesMap  = Record<string, PageEntry[]>;
+
+function saveToStorage(files: WorkspaceFile[], pagesMap: PagesMap) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
+    localStorage.setItem(PAGES_KEY,   JSON.stringify(pagesMap));
+  } catch {}
+}
+
+// ── Default files shown on first ever load ────────────────────────────────────
+
+const DEFAULT_FILES: WorkspaceFile[] = [
   { id: '1', name: 'Ideas.txt', content: '<p> </p>' },
   { id: '2', name: 'script.m', content: '% MATLAB script\nx = linspace(0, 2*pi, 100);\ny = sin(x);\nplot(x, y);' },
   { id: '3', name: 'Q2_Finance.csv', content: '[{"id":1,"category":"Rent","amount":12000},{"id":2,"category":"Food","amount":5000},{"id":3,"category":"Software","amount":800}]' },
 ];
 
-export default function Home() {
-  const [files, setFiles] = useState<WorkspaceFile[]>(INITIAL_FILES);
-  const [activeFileId, setActiveFileId] = useState<string>('1');
-  const [section, setSection] = useState<'files' | 'consciousness'>('files');
-  const [focusMode, setFocusMode] = useState(false);
+// ── Main page ─────────────────────────────────────────────────────────────────
 
-  // Pages state: { [fileId]: Page[] }
-  const [pagesMap, setPagesMap] = useState<Record<string, { id: number; content: string; bgType?: 'dotted' | 'lined' | 'plain' | 'white' }[]>>({});
+export default function Home() {
+  // Always start with DEFAULT_FILES so server + client render identically.
+  // After hydration, the useEffect below overwrites with whatever is in localStorage.
+  const [files, setFiles]           = useState<WorkspaceFile[]>(DEFAULT_FILES);
+  const [pagesMap, setPagesMap]     = useState<PagesMap>({});
   const [pageIdxMap, setPageIdxMap] = useState<Record<string, number>>({});
+
+  const [activeFileId, setActiveFileId] = useState<string>('1');
+  const [section, setSection]           = useState<'files' | 'consciousness'>('files');
+  const [focusMode, setFocusMode]       = useState(false);
+  const [saveFlash, setSaveFlash]       = useState(false);
+
+  // Tracks whether the initial localStorage load has completed.
+  // Prevents the default files from being written back to localStorage
+  // before we've had a chance to read what's already stored there.
+  const hasLoaded = useRef(false);
+
+  // Load persisted data from localStorage after first render (client-only).
+  // This runs once on mount and is invisible to the server — no hydration mismatch.
+  useEffect(() => {
+    try {
+      const rawFiles = localStorage.getItem(STORAGE_KEY);
+      const rawPages = localStorage.getItem(PAGES_KEY);
+      if (rawFiles) {
+        const stored = JSON.parse(rawFiles) as WorkspaceFile[];
+        if (stored.length > 0) {
+          setFiles(stored);
+          setActiveFileId(stored[0].id);
+        }
+      }
+      if (rawPages) {
+        setPagesMap(JSON.parse(rawPages) as PagesMap);
+      }
+    } catch {}
+    // Mark load as complete — auto-save effects below will now run
+    hasLoaded.current = true;
+  }, []);
+
+  // Auto-save the file LIST whenever it changes (handles delete, create, rename).
+  // Content (pagesMap) is only saved when the user clicks the Save button.
+  useEffect(() => {
+    if (!hasLoaded.current) return; // skip the initial render with DEFAULT_FILES
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
+    } catch {}
+  }, [files]);
 
   const activeFile = files.find(f => f.id === activeFileId) || files[0];
 
@@ -29,7 +85,14 @@ export default function Home() {
     [activeFileId, files]
   );
 
-  // Pages helpers
+  // ── Save button handler ───────────────────────────────────────────────────
+  const handleSave = () => {
+    saveToStorage(files, pagesMap);
+    setSaveFlash(true);
+    setTimeout(() => setSaveFlash(false), 1800);
+  };
+
+  // ── Pages helpers ─────────────────────────────────────────────────────────
   const getPages = (fileId: string, fallbackContent: string) =>
     pagesMap[fileId] ?? [{ id: 1, content: fallbackContent }];
 
@@ -53,6 +116,7 @@ export default function Home() {
     setPagesMap(prev => ({ ...prev, [fileId]: updated }));
   };
 
+  // ── File CRUD ─────────────────────────────────────────────────────────────
   const handleCreateFile = () => {
     const newFile: WorkspaceFile = {
       id: Date.now().toString(),
@@ -211,6 +275,7 @@ export default function Home() {
                 </button>
               </div>
             ))}
+
             {/* Related files */}
             {relatedFiles.length > 0 && (
               <div style={{ marginTop: 12, borderTop: `1px solid ${B.border}`, paddingTop: 12 }}>
@@ -322,6 +387,23 @@ export default function Home() {
                 {getFileType(activeFile.name)}
               </span>
             </div>
+
+            {/* ── Save button ── */}
+            <button
+              id="save-workspace-btn"
+              onClick={handleSave}
+              title="Save all files to browser storage (Cmd+S)"
+              style={{
+                padding: '4px 12px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+                cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
+                background: saveFlash ? 'rgba(77,186,132,0.12)' : B.amberGlow,
+                color: saveFlash ? '#4dba84' : B.amber,
+                border: saveFlash ? '1px solid rgba(77,186,132,0.3)' : `1px solid ${B.amberBorder}`,
+              }}
+            >
+              {saveFlash ? '✓ Saved' : '⬇ Save'}
+            </button>
+
             {/* Focus Mode toggle */}
             <button
               onClick={() => setFocusMode(v => !v)}

@@ -4370,7 +4370,17 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
-const INITIAL_FILES = [
+// ── localStorage helpers ───────────────────────────────────────────────────────
+const STORAGE_KEY = "cortex_workspace_files";
+const PAGES_KEY = "cortex_pages_map";
+function saveToStorage(files, pagesMap) {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
+        localStorage.setItem(PAGES_KEY, JSON.stringify(pagesMap));
+    } catch  {}
+}
+// ── Default files shown on first ever load ────────────────────────────────────
+const DEFAULT_FILES = [
     {
         id: '1',
         name: 'Ideas.txt',
@@ -4389,13 +4399,53 @@ const INITIAL_FILES = [
 ];
 function Home() {
     _s();
-    const [files, setFiles] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(INITIAL_FILES);
+    // Always start with DEFAULT_FILES so server + client render identically.
+    // After hydration, the useEffect below overwrites with whatever is in localStorage.
+    const [files, setFiles] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(DEFAULT_FILES);
+    const [pagesMap, setPagesMap] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({});
+    const [pageIdxMap, setPageIdxMap] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({});
     const [activeFileId, setActiveFileId] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('1');
     const [section, setSection] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('files');
     const [focusMode, setFocusMode] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
-    // Pages state: { [fileId]: Page[] }
-    const [pagesMap, setPagesMap] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({});
-    const [pageIdxMap, setPageIdxMap] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({});
+    const [saveFlash, setSaveFlash] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    // Tracks whether the initial localStorage load has completed.
+    // Prevents the default files from being written back to localStorage
+    // before we've had a chance to read what's already stored there.
+    const hasLoaded = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(false);
+    // Load persisted data from localStorage after first render (client-only).
+    // This runs once on mount and is invisible to the server — no hydration mismatch.
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "Home.useEffect": ()=>{
+            try {
+                const rawFiles = localStorage.getItem(STORAGE_KEY);
+                const rawPages = localStorage.getItem(PAGES_KEY);
+                if (rawFiles) {
+                    const stored = JSON.parse(rawFiles);
+                    if (stored.length > 0) {
+                        setFiles(stored);
+                        setActiveFileId(stored[0].id);
+                    }
+                }
+                if (rawPages) {
+                    setPagesMap(JSON.parse(rawPages));
+                }
+            } catch  {}
+            // Mark load as complete — auto-save effects below will now run
+            hasLoaded.current = true;
+        }
+    }["Home.useEffect"], []);
+    // Auto-save the file LIST whenever it changes (handles delete, create, rename).
+    // Content (pagesMap) is only saved when the user clicks the Save button.
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "Home.useEffect": ()=>{
+            if (!hasLoaded.current) return; // skip the initial render with DEFAULT_FILES
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
+            } catch  {}
+        }
+    }["Home.useEffect"], [
+        files
+    ]);
     const activeFile = files.find((f)=>f.id === activeFileId) || files[0];
     const relatedFiles = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
         "Home.useMemo[relatedFiles]": ()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$similarity$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getRelatedFiles"])(activeFileId, files, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$DynamicCanvas$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getFileType"], 4)
@@ -4403,7 +4453,13 @@ function Home() {
         activeFileId,
         files
     ]);
-    // Pages helpers
+    // ── Save button handler ───────────────────────────────────────────────────
+    const handleSave = ()=>{
+        saveToStorage(files, pagesMap);
+        setSaveFlash(true);
+        setTimeout(()=>setSaveFlash(false), 1800);
+    };
+    // ── Pages helpers ─────────────────────────────────────────────────────────
     const getPages = (fileId, fallbackContent)=>pagesMap[fileId] ?? [
             {
                 id: 1,
@@ -4448,6 +4504,7 @@ function Home() {
                 [fileId]: updated
             }));
     };
+    // ── File CRUD ─────────────────────────────────────────────────────────────
     const handleCreateFile = ()=>{
         const newFile = {
             id: Date.now().toString(),
@@ -4557,7 +4614,7 @@ function Home() {
                                     children: "✦"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/page.tsx",
-                                    lineNumber: 131,
+                                    lineNumber: 195,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4570,18 +4627,18 @@ function Home() {
                                     children: "CORTEX"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/page.tsx",
-                                    lineNumber: 135,
+                                    lineNumber: 199,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/page.tsx",
-                            lineNumber: 130,
+                            lineNumber: 194,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 129,
+                        lineNumber: 193,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4627,17 +4684,17 @@ function Home() {
                                     children: label
                                 }, key, false, {
                                     fileName: "[project]/src/app/page.tsx",
-                                    lineNumber: 146,
+                                    lineNumber: 210,
                                     columnNumber: 15
                                 }, this))
                         }, void 0, false, {
                             fileName: "[project]/src/app/page.tsx",
-                            lineNumber: 141,
+                            lineNumber: 205,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 140,
+                        lineNumber: 204,
                         columnNumber: 9
                     }, this),
                     section === 'files' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4659,7 +4716,7 @@ function Home() {
                                 children: "Workspace Files"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 163,
+                                lineNumber: 227,
                                 columnNumber: 13
                             }, this),
                             files.map((f)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4694,7 +4751,7 @@ function Home() {
                                             children: getFileIcon(f.name)
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/page.tsx",
-                                            lineNumber: 190,
+                                            lineNumber: 254,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4710,7 +4767,7 @@ function Home() {
                                             children: f.name
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/page.tsx",
-                                            lineNumber: 193,
+                                            lineNumber: 257,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4734,13 +4791,13 @@ function Home() {
                                             children: "×"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/page.tsx",
-                                            lineNumber: 200,
+                                            lineNumber: 264,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, f.id, true, {
                                     fileName: "[project]/src/app/page.tsx",
-                                    lineNumber: 170,
+                                    lineNumber: 234,
                                     columnNumber: 15
                                 }, this)),
                             relatedFiles.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4773,14 +4830,14 @@ function Home() {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/page.tsx",
-                                                lineNumber: 221,
+                                                lineNumber: 286,
                                                 columnNumber: 19
                                             }, this),
                                             "Related"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/page.tsx",
-                                        lineNumber: 217,
+                                        lineNumber: 282,
                                         columnNumber: 17
                                     }, this),
                                     relatedFiles.map((r)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4818,7 +4875,7 @@ function Home() {
                                                             children: getFileIcon(r.name)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/page.tsx",
-                                                            lineNumber: 233,
+                                                            lineNumber: 298,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4833,7 +4890,7 @@ function Home() {
                                                             children: r.name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/page.tsx",
-                                                            lineNumber: 234,
+                                                            lineNumber: 299,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4850,13 +4907,13 @@ function Home() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/page.tsx",
-                                                            lineNumber: 240,
+                                                            lineNumber: 305,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/page.tsx",
-                                                    lineNumber: 232,
+                                                    lineNumber: 297,
                                                     columnNumber: 21
                                                 }, this),
                                                 r.reason && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4871,25 +4928,25 @@ function Home() {
                                                     children: r.reason
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/page.tsx",
-                                                    lineNumber: 245,
+                                                    lineNumber: 310,
                                                     columnNumber: 23
                                                 }, this)
                                             ]
                                         }, r.id, true, {
                                             fileName: "[project]/src/app/page.tsx",
-                                            lineNumber: 225,
+                                            lineNumber: 290,
                                             columnNumber: 19
                                         }, this))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 216,
+                                lineNumber: 281,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 162,
+                        lineNumber: 226,
                         columnNumber: 11
                     }, this),
                     section === 'consciousness' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4911,7 +4968,7 @@ function Home() {
                                 children: "Consciousness"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 261,
+                                lineNumber: 326,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4923,7 +4980,7 @@ function Home() {
                                 children: "Nodes are your files. Edges show semantic connections based on type and naming."
                             }, void 0, false, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 267,
+                                lineNumber: 332,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4942,7 +4999,7 @@ function Home() {
                                         children: "Legend"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/page.tsx",
-                                        lineNumber: 271,
+                                        lineNumber: 336,
                                         columnNumber: 15
                                     }, this),
                                     [
@@ -4982,26 +5039,26 @@ function Home() {
                                                     children: icon
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/page.tsx",
-                                                    lineNumber: 274,
+                                                    lineNumber: 339,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                     children: label
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/page.tsx",
-                                                    lineNumber: 275,
+                                                    lineNumber: 340,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, label, true, {
                                             fileName: "[project]/src/app/page.tsx",
-                                            lineNumber: 273,
+                                            lineNumber: 338,
                                             columnNumber: 17
                                         }, this))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 270,
+                                lineNumber: 335,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5018,13 +5075,13 @@ function Home() {
                                 children: "💡 Click any node in the graph to open that file."
                             }, void 0, false, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 279,
+                                lineNumber: 344,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 260,
+                        lineNumber: 325,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5057,25 +5114,25 @@ function Home() {
                                     children: "+"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/page.tsx",
-                                    lineNumber: 297,
+                                    lineNumber: 362,
                                     columnNumber: 13
                                 }, this),
                                 " New File"
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/page.tsx",
-                            lineNumber: 291,
+                            lineNumber: 356,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 290,
+                        lineNumber: 355,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/page.tsx",
-                lineNumber: 121,
+                lineNumber: 185,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5115,7 +5172,7 @@ function Home() {
                                         children: getFileIcon(activeFile.name)
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/page.tsx",
-                                        lineNumber: 310,
+                                        lineNumber: 375,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -5128,7 +5185,7 @@ function Home() {
                                         placeholder: "Filename..."
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/page.tsx",
-                                        lineNumber: 311,
+                                        lineNumber: 376,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -5143,13 +5200,37 @@ function Home() {
                                         children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$DynamicCanvas$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getFileType"])(activeFile.name)
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/page.tsx",
-                                        lineNumber: 318,
+                                        lineNumber: 383,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 309,
+                                lineNumber: 374,
+                                columnNumber: 13
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                id: "save-workspace-btn",
+                                onClick: handleSave,
+                                title: "Save all files to browser storage (Cmd+S)",
+                                style: {
+                                    padding: '4px 12px',
+                                    borderRadius: 7,
+                                    fontSize: 11,
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                    transition: 'all .2s',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 5,
+                                    background: saveFlash ? 'rgba(77,186,132,0.12)' : B.amberGlow,
+                                    color: saveFlash ? '#4dba84' : B.amber,
+                                    border: saveFlash ? '1px solid rgba(77,186,132,0.3)' : `1px solid ${B.amberBorder}`
+                                },
+                                children: saveFlash ? '✓ Saved' : '⬇ Save'
+                            }, void 0, false, {
+                                fileName: "[project]/src/app/page.tsx",
+                                lineNumber: 392,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -5172,13 +5253,13 @@ function Home() {
                                 children: focusMode ? '◧ Exit Focus' : '▣ Focus'
                             }, void 0, false, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 326,
+                                lineNumber: 408,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 305,
+                        lineNumber: 370,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5193,7 +5274,7 @@ function Home() {
                             onSelectFile: handleSelectFromGraph
                         }, void 0, false, {
                             fileName: "[project]/src/app/page.tsx",
-                            lineNumber: 345,
+                            lineNumber: 427,
                             columnNumber: 13
                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$DynamicCanvas$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
                             file: {
@@ -5222,28 +5303,28 @@ function Home() {
                             onChangeBgType: (t)=>handleChangeBgType(activeFile.id, currentPageIdx, t)
                         }, `${activeFile.id}-${currentPageIdx}`, false, {
                             fileName: "[project]/src/app/page.tsx",
-                            lineNumber: 351,
+                            lineNumber: 433,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 343,
+                        lineNumber: 425,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/page.tsx",
-                lineNumber: 303,
+                lineNumber: 368,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/page.tsx",
-        lineNumber: 115,
+        lineNumber: 179,
         columnNumber: 5
     }, this);
 }
-_s(Home, "b6q1WwuQRi5LkMI3tLn5YpjN3nc=");
+_s(Home, "v+0IDpxjnB/rpUlaCvlwVyEsimU=");
 _c = Home;
 var _c;
 __turbopack_context__.k.register(_c, "Home");

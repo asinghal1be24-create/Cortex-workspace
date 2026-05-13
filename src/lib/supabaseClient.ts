@@ -1,0 +1,19 @@
+/**
+ * supabaseClient.ts
+ * Single shared Supabase client instance for the whole app.
+ * Keep this as a module-level singleton so we never create multiple clients.
+ */
+
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    "[Cortex] Missing Supabase env vars. " +
+    "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your .env.local file."
+  );
+}
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
