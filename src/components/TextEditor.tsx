@@ -71,10 +71,11 @@ const FontSize = Mark.create({
 // ── Data Bridge Spark Extension (Phase 2 - AI) ───────────────────────────────
 
 function DataSparkComponent(props: any) {
-  const { node, updateAttributes } = props;
+  const { node, updateAttributes, editor } = props;
   const { rawText, status, filename, amount, category } = node.attrs;
 
   useEffect(() => {
+    let isMounted = true;
     // Only parse if it's new (status === 'pending')
     if (status !== 'pending') return;
 
@@ -98,6 +99,8 @@ function DataSparkComponent(props: any) {
           body: JSON.stringify({ text: rawText, availableLedgers })
         });
         const data = await res.json();
+        
+        if (!isMounted || !editor || editor.isDestroyed) return;
 
         if (data.isLogEvent) {
           updateAttributes({ 
@@ -116,11 +119,15 @@ function DataSparkComponent(props: any) {
           updateAttributes({ status: 'ignored' });
         }
       } catch (error) {
-        updateAttributes({ status: 'error' });
+        console.error("DataSpark AI Error:", error);
+        if (isMounted && editor && !editor.isDestroyed) {
+          updateAttributes({ status: 'error' });
+        }
       }
     }
     parseAI();
-  }, [status, rawText, updateAttributes]);
+    return () => { isMounted = false; };
+  }, [status, rawText, updateAttributes, editor]);
 
   // If the AI decides it's not a log, just render the original text back out
   if (status === 'ignored') {
