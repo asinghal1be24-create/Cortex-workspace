@@ -1,7 +1,7 @@
 "use client";
 
-import { useEditor, EditorContent } from '@tiptap/react';
-import { Mark, mergeAttributes } from '@tiptap/core';
+import { useEditor, EditorContent, NodeViewWrapper, ReactNodeViewRenderer } from '@tiptap/react';
+import { Mark, Node, mergeAttributes, InputRule } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { Image } from '@tiptap/extension-image';
 import { Table } from '@tiptap/extension-table';
@@ -65,6 +65,133 @@ const FontSize = Mark.create({
       setFontSize: fontSize => ({ chain }) => chain().setMark('fontSize', { fontSize }).run(),
       unsetFontSize: () => ({ chain }) => chain().unsetMark('fontSize').run(),
     };
+  },
+});
+
+// ── Data Bridge Spark Extension (Phase 2 - AI) ───────────────────────────────
+
+function DataSparkComponent(props: any) {
+  const { node, updateAttributes } = props;
+  const { rawText, status, filename, amount, category } = node.attrs;
+
+  useEffect(() => {
+    // Only parse if it's new (status === 'pending')
+    if (status !== 'pending') return;
+
+    async function parseAI() {
+      try {
+        // Find existing ledgers from localStorage so the AI knows what to match against
+        let availableLedgers: string[] = [];
+        try {
+          const stored = localStorage.getItem('cortex_workspace_files');
+          if (stored) {
+            const files = JSON.parse(stored);
+            availableLedgers = files
+              .filter((f: any) => f.name.toLowerCase().endsWith('.csv'))
+              .map((f: any) => f.name.replace(/\.csv$/i, ''));
+          }
+        } catch {}
+
+        const res = await fetch('/api/bridge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: rawText, availableLedgers })
+        });
+        const data = await res.json();
+
+        if (data.isLogEvent) {
+          updateAttributes({ 
+            status: 'success', 
+            filename: data.filename, 
+            amount: data.amount, 
+            category: data.category 
+          });
+          
+          // Fire the mutator in page.tsx
+          const event = new CustomEvent('cortex-bridge', { 
+            detail: { filename: data.filename, amount: data.amount, category: data.category } 
+          });
+          window.dispatchEvent(event);
+        } else {
+          updateAttributes({ status: 'ignored' });
+        }
+      } catch (error) {
+        updateAttributes({ status: 'error' });
+      }
+    }
+    parseAI();
+  }, [status, rawText, updateAttributes]);
+
+  // If the AI decides it's not a log, just render the original text back out
+  if (status === 'ignored') {
+    return <NodeViewWrapper as="span" style={{ color: 'var(--color-cortex-muted)' }}>{rawText}</NodeViewWrapper>;
+  }
+
+  // Visuals for the Spark Dot
+  const isThinking = status === 'pending';
+  const isError = status === 'error';
+  
+  const bg = isError ? '#e07272' : isThinking ? '#6a6780' : 'var(--color-cortex-amber)';
+  const shadow = isThinking ? 'none' : `0 0 6px ${bg}`;
+  const animation = isThinking ? 'pulse 1.5s ease-in-out infinite' : 'none';
+
+  return (
+    <NodeViewWrapper as="span" style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 4px' }}>
+      <span
+        style={{
+          display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+          background: bg, boxShadow: shadow, animation, cursor: 'help'
+        }}
+        title={
+          isThinking ? `AI Parsing: "${rawText}"...` : 
+          isError ? `Error parsing: "${rawText}"` :
+          `Data Bridge: Sent ${amount} to ${filename} for ${category}\nOriginal: "${rawText}"`
+        }
+      />
+    </NodeViewWrapper>
+  );
+}
+
+const DataSparkNode = Node.create({
+  name: 'dataSpark',
+  group: 'inline',
+  inline: true,
+  atom: true,
+
+  addAttributes() {
+    return {
+      rawText: { default: '' },
+      status: { default: 'pending' }, // 'pending' | 'success' | 'error' | 'ignored'
+      filename: { default: '' },
+      amount: { default: '' },
+      category: { default: '' },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'span[data-type="data-spark"]' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    // Fallback static HTML rendering (mainly for saving to state)
+    return ['span', mergeAttributes(HTMLAttributes, { 'data-type': 'data-spark' })];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(DataSparkComponent);
+  },
+
+  addInputRules() {
+    return [
+      new InputRule({
+        // Matches anything between $$ $$ (e.g. $$spent 40 on food$$)
+        find: /\$\$([^$]+)\$\$/,
+        handler: ({ state, range, match }) => {
+          const [_, rawText] = match;
+          state.tr.replaceWith(range.from, range.to, this.type.create({ rawText: rawText.trim() }));
+        },
+      }),
+    ];
   },
 });
 
@@ -427,6 +554,7 @@ export default function TextEditor({
       TableRow,
       TableHeader,
       TableCell,
+      DataSparkNode,
     ],
     content,
     immediatelyRender: false,

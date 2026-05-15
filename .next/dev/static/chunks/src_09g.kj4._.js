@@ -17,7 +17,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$extension$2d$table$2d$header$2f$dist$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/node_modules/@tiptap/extension-table-header/dist/index.js [app-client] (ecmascript) <locals>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
 ;
-var _s = __turbopack_context__.k.signature(), _s1 = __turbopack_context__.k.signature(), _s2 = __turbopack_context__.k.signature();
+var _s = __turbopack_context__.k.signature(), _s1 = __turbopack_context__.k.signature(), _s2 = __turbopack_context__.k.signature(), _s3 = __turbopack_context__.k.signature();
 "use client";
 ;
 ;
@@ -74,6 +74,185 @@ const FontSize = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f
         };
     }
 });
+// ── Data Bridge Spark Extension (Phase 2 - AI) ───────────────────────────────
+function DataSparkComponent(props) {
+    _s();
+    const { node, updateAttributes } = props;
+    const { rawText, status, filename, amount, category } = node.attrs;
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "DataSparkComponent.useEffect": ()=>{
+            // Only parse if it's new (status === 'pending')
+            if (status !== 'pending') return;
+            async function parseAI() {
+                try {
+                    // Find existing ledgers from localStorage so the AI knows what to match against
+                    let availableLedgers = [];
+                    try {
+                        const stored = localStorage.getItem('cortex_workspace_files');
+                        if (stored) {
+                            const files = JSON.parse(stored);
+                            availableLedgers = files.filter({
+                                "DataSparkComponent.useEffect.parseAI": (f)=>f.name.toLowerCase().endsWith('.csv')
+                            }["DataSparkComponent.useEffect.parseAI"]).map({
+                                "DataSparkComponent.useEffect.parseAI": (f)=>f.name.replace(/\.csv$/i, '')
+                            }["DataSparkComponent.useEffect.parseAI"]);
+                        }
+                    } catch  {}
+                    const res = await fetch('/api/bridge', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            text: rawText,
+                            availableLedgers
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.isLogEvent) {
+                        updateAttributes({
+                            status: 'success',
+                            filename: data.filename,
+                            amount: data.amount,
+                            category: data.category
+                        });
+                        // Fire the mutator in page.tsx
+                        const event = new CustomEvent('cortex-bridge', {
+                            detail: {
+                                filename: data.filename,
+                                amount: data.amount,
+                                category: data.category
+                            }
+                        });
+                        window.dispatchEvent(event);
+                    } else {
+                        updateAttributes({
+                            status: 'ignored'
+                        });
+                    }
+                } catch (error) {
+                    updateAttributes({
+                        status: 'error'
+                    });
+                }
+            }
+            parseAI();
+        }
+    }["DataSparkComponent.useEffect"], [
+        status,
+        rawText,
+        updateAttributes
+    ]);
+    // If the AI decides it's not a log, just render the original text back out
+    if (status === 'ignored') {
+        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$react$2f$dist$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["NodeViewWrapper"], {
+            as: "span",
+            style: {
+                color: 'var(--color-cortex-muted)'
+            },
+            children: rawText
+        }, void 0, false, {
+            fileName: "[project]/src/components/TextEditor.tsx",
+            lineNumber: 127,
+            columnNumber: 12
+        }, this);
+    }
+    // Visuals for the Spark Dot
+    const isThinking = status === 'pending';
+    const isError = status === 'error';
+    const bg = isError ? '#e07272' : isThinking ? '#6a6780' : 'var(--color-cortex-amber)';
+    const shadow = isThinking ? 'none' : `0 0 6px ${bg}`;
+    const animation = isThinking ? 'pulse 1.5s ease-in-out infinite' : 'none';
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$react$2f$dist$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["NodeViewWrapper"], {
+        as: "span",
+        style: {
+            display: 'inline-block',
+            verticalAlign: 'middle',
+            margin: '0 4px'
+        },
+        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+            style: {
+                display: 'inline-block',
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: bg,
+                boxShadow: shadow,
+                animation,
+                cursor: 'help'
+            },
+            title: isThinking ? `AI Parsing: "${rawText}"...` : isError ? `Error parsing: "${rawText}"` : `Data Bridge: Sent ${amount} to ${filename} for ${category}\nOriginal: "${rawText}"`
+        }, void 0, false, {
+            fileName: "[project]/src/components/TextEditor.tsx",
+            lineNumber: 140,
+            columnNumber: 7
+        }, this)
+    }, void 0, false, {
+        fileName: "[project]/src/components/TextEditor.tsx",
+        lineNumber: 139,
+        columnNumber: 5
+    }, this);
+}
+_s(DataSparkComponent, "OD7bBpZva5O2jO+Puf00hKivP7c=");
+_c = DataSparkComponent;
+const DataSparkNode = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$core$2f$dist$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Node"].create({
+    name: 'dataSpark',
+    group: 'inline',
+    inline: true,
+    atom: true,
+    addAttributes () {
+        return {
+            rawText: {
+                default: ''
+            },
+            status: {
+                default: 'pending'
+            },
+            filename: {
+                default: ''
+            },
+            amount: {
+                default: ''
+            },
+            category: {
+                default: ''
+            }
+        };
+    },
+    parseHTML () {
+        return [
+            {
+                tag: 'span[data-type="data-spark"]'
+            }
+        ];
+    },
+    renderHTML ({ HTMLAttributes }) {
+        // Fallback static HTML rendering (mainly for saving to state)
+        return [
+            'span',
+            (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$core$2f$dist$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["mergeAttributes"])(HTMLAttributes, {
+                'data-type': 'data-spark'
+            })
+        ];
+    },
+    addNodeView () {
+        return (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$react$2f$dist$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["ReactNodeViewRenderer"])(DataSparkComponent);
+    },
+    addInputRules () {
+        return [
+            new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$core$2f$dist$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["InputRule"]({
+                // Matches anything between $$ $$ (e.g. $$spent 40 on food$$)
+                find: /\$\$([^$]+)\$\$/,
+                handler: ({ state, range, match })=>{
+                    const [_, rawText] = match;
+                    state.tr.replaceWith(range.from, range.to, this.type.create({
+                        rawText: rawText.trim()
+                    }));
+                }
+            })
+        ];
+    }
+});
 // ── PageStrip ────────────────────────────────────────────────────────────────
 function PageStrip({ pages, currentIdx, onSelect, onAdd }) {
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -106,7 +285,7 @@ function PageStrip({ pages, currentIdx, onSelect, onAdd }) {
                     children: i + 1
                 }, pg.id, false, {
                     fileName: "[project]/src/components/TextEditor.tsx",
-                    lineNumber: 84,
+                    lineNumber: 211,
                     columnNumber: 9
                 }, this)),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -132,20 +311,20 @@ function PageStrip({ pages, currentIdx, onSelect, onAdd }) {
                 children: "+"
             }, void 0, false, {
                 fileName: "[project]/src/components/TextEditor.tsx",
-                lineNumber: 92,
+                lineNumber: 219,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/TextEditor.tsx",
-        lineNumber: 77,
+        lineNumber: 204,
         columnNumber: 5
     }, this);
 }
-_c = PageStrip;
+_c1 = PageStrip;
 // ── Table size picker (hover grid) ───────────────────────────────────────────
 function TablePicker({ onPick, onClose }) {
-    _s();
+    _s1();
     const [hover, setHover] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({
         r: 0,
         c: 0
@@ -174,7 +353,7 @@ function TablePicker({ onPick, onClose }) {
                 children: hover.r > 0 ? `${hover.r} × ${hover.c}` : 'Hover to pick size'
             }, void 0, false, {
                 fileName: "[project]/src/components/TextEditor.tsx",
-                lineNumber: 116,
+                lineNumber: 243,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -209,26 +388,26 @@ function TablePicker({ onPick, onClose }) {
                         }
                     }, i, false, {
                         fileName: "[project]/src/components/TextEditor.tsx",
-                        lineNumber: 125,
+                        lineNumber: 252,
                         columnNumber: 13
                     }, this);
                 })
             }, void 0, false, {
                 fileName: "[project]/src/components/TextEditor.tsx",
-                lineNumber: 119,
+                lineNumber: 246,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/TextEditor.tsx",
-        lineNumber: 110,
+        lineNumber: 237,
         columnNumber: 5
     }, this);
 }
-_s(TablePicker, "VFnKqU4EsssVkRDtOSRSr59YMlo=");
-_c1 = TablePicker;
+_s1(TablePicker, "VFnKqU4EsssVkRDtOSRSr59YMlo=");
+_c2 = TablePicker;
 function OverlayItem({ overlay, onRemove, onUpdate }) {
-    _s1();
+    _s2();
     const containerRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
     const dragRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
     const resizeRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
@@ -355,7 +534,7 @@ function OverlayItem({ overlay, onRemove, onUpdate }) {
         children: "×"
     }, void 0, false, {
         fileName: "[project]/src/components/TextEditor.tsx",
-        lineNumber: 201,
+        lineNumber: 328,
         columnNumber: 5
     }, this);
     // ── Resize handles helper ──
@@ -387,7 +566,7 @@ function OverlayItem({ overlay, onRemove, onUpdate }) {
             onPointerDown: (e)=>startResize(e, dir)
         }, dir, false, {
             fileName: "[project]/src/components/TextEditor.tsx",
-            lineNumber: 228,
+            lineNumber: 355,
             columnNumber: 5
         }, this);
     const resizeHandles = (w, h)=>{
@@ -477,14 +656,14 @@ function OverlayItem({ overlay, onRemove, onUpdate }) {
                     }
                 }, void 0, false, {
                     fileName: "[project]/src/components/TextEditor.tsx",
-                    lineNumber: 271,
+                    lineNumber: 398,
                     columnNumber: 9
                 }, this),
                 resizeHandles(imgW, imgH)
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/TextEditor.tsx",
-            lineNumber: 252,
+            lineNumber: 379,
             columnNumber: 7
         }, this);
     }
@@ -527,7 +706,7 @@ function OverlayItem({ overlay, onRemove, onUpdate }) {
                     children: "Checklist"
                 }, void 0, false, {
                     fileName: "[project]/src/components/TextEditor.tsx",
-                    lineNumber: 288,
+                    lineNumber: 415,
                     columnNumber: 9
                 }, this),
                 items.map((item, i)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -559,7 +738,7 @@ function OverlayItem({ overlay, onRemove, onUpdate }) {
                                 children: item.checked ? '✓' : ''
                             }, void 0, false, {
                                 fileName: "[project]/src/components/TextEditor.tsx",
-                                lineNumber: 291,
+                                lineNumber: 418,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -578,13 +757,13 @@ function OverlayItem({ overlay, onRemove, onUpdate }) {
                                 }
                             }, void 0, false, {
                                 fileName: "[project]/src/components/TextEditor.tsx",
-                                lineNumber: 298,
+                                lineNumber: 425,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, i, true, {
                         fileName: "[project]/src/components/TextEditor.tsx",
-                        lineNumber: 290,
+                        lineNumber: 417,
                         columnNumber: 11
                     }, this)),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -609,13 +788,13 @@ function OverlayItem({ overlay, onRemove, onUpdate }) {
                     children: "+ Add item"
                 }, void 0, false, {
                     fileName: "[project]/src/components/TextEditor.tsx",
-                    lineNumber: 307,
+                    lineNumber: 434,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/TextEditor.tsx",
-            lineNumber: 286,
+            lineNumber: 413,
             columnNumber: 7
         }, this);
     }
@@ -661,7 +840,7 @@ function OverlayItem({ overlay, onRemove, onUpdate }) {
                             children: "Border"
                         }, void 0, false, {
                             fileName: "[project]/src/components/TextEditor.tsx",
-                            lineNumber: 326,
+                            lineNumber: 453,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -682,7 +861,7 @@ function OverlayItem({ overlay, onRemove, onUpdate }) {
                             }
                         }, void 0, false, {
                             fileName: "[project]/src/components/TextEditor.tsx",
-                            lineNumber: 327,
+                            lineNumber: 454,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -696,13 +875,13 @@ function OverlayItem({ overlay, onRemove, onUpdate }) {
                             }
                         }, void 0, false, {
                             fileName: "[project]/src/components/TextEditor.tsx",
-                            lineNumber: 331,
+                            lineNumber: 458,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/TextEditor.tsx",
-                    lineNumber: 325,
+                    lineNumber: 452,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("table", {
@@ -745,40 +924,40 @@ function OverlayItem({ overlay, onRemove, onUpdate }) {
                                             }
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/TextEditor.tsx",
-                                            lineNumber: 339,
+                                            lineNumber: 466,
                                             columnNumber: 21
                                         }, this)
                                     }, c, false, {
                                         fileName: "[project]/src/components/TextEditor.tsx",
-                                        lineNumber: 338,
+                                        lineNumber: 465,
                                         columnNumber: 19
                                     }, this))
                             }, r, false, {
                                 fileName: "[project]/src/components/TextEditor.tsx",
-                                lineNumber: 336,
+                                lineNumber: 463,
                                 columnNumber: 15
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/src/components/TextEditor.tsx",
-                        lineNumber: 334,
+                        lineNumber: 461,
                         columnNumber: 11
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/components/TextEditor.tsx",
-                    lineNumber: 333,
+                    lineNumber: 460,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/components/TextEditor.tsx",
-            lineNumber: 322,
+            lineNumber: 449,
             columnNumber: 7
         }, this);
     }
     return null;
 }
-_s1(OverlayItem, "93ymer0GOqk3Lc/AN0yenKSeKc4=");
-_c2 = OverlayItem;
+_s2(OverlayItem, "93ymer0GOqk3Lc/AN0yenKSeKc4=");
+_c3 = OverlayItem;
 // ── Font size menu ────────────────────────────────────────────────────────────
 const FONT_LEVELS = [
     {
@@ -843,16 +1022,16 @@ function FontMenu({ onClose, onSelect }) {
                 children: f.label
             }, f.label, false, {
                 fileName: "[project]/src/components/TextEditor.tsx",
-                lineNumber: 381,
+                lineNumber: 508,
                 columnNumber: 9
             }, this))
     }, void 0, false, {
         fileName: "[project]/src/components/TextEditor.tsx",
-        lineNumber: 375,
+        lineNumber: 502,
         columnNumber: 5
     }, this);
 }
-_c3 = FontMenu;
+_c4 = FontMenu;
 // ── SVG icon button ───────────────────────────────────────────────────────────
 function IconBtn({ title, onClick, active, children }) {
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -875,13 +1054,13 @@ function IconBtn({ title, onClick, active, children }) {
         children: children
     }, void 0, false, {
         fileName: "[project]/src/components/TextEditor.tsx",
-        lineNumber: 400,
+        lineNumber: 527,
         columnNumber: 5
     }, this);
 }
-_c4 = IconBtn;
+_c5 = IconBtn;
 function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, onSelectPage }) {
-    _s2();
+    _s3();
     const imgInputRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
     const editorWrapRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
     const [showTablePicker, setShowTablePicker] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
@@ -897,7 +1076,8 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
             }),
             __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$extension$2d$table$2f$dist$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableRow"],
             __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$extension$2d$table$2f$dist$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableHeader"],
-            __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$extension$2d$table$2f$dist$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableCell"]
+            __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$extension$2d$table$2f$dist$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableCell"],
+            DataSparkNode
         ],
         content,
         immediatelyRender: false,
@@ -1004,7 +1184,7 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
       `
             }, void 0, false, {
                 fileName: "[project]/src/components/TextEditor.tsx",
-                lineNumber: 490,
+                lineNumber: 618,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1040,12 +1220,12 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                     children: "Aa"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/TextEditor.tsx",
-                                    lineNumber: 516,
+                                    lineNumber: 644,
                                     columnNumber: 13
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/components/TextEditor.tsx",
-                                lineNumber: 515,
+                                lineNumber: 643,
                                 columnNumber: 11
                             }, this),
                             showFontMenu && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(FontMenu, {
@@ -1053,13 +1233,13 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                 onSelect: handleFontSelect
                             }, void 0, false, {
                                 fileName: "[project]/src/components/TextEditor.tsx",
-                                lineNumber: 518,
+                                lineNumber: 646,
                                 columnNumber: 28
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/TextEditor.tsx",
-                        lineNumber: 514,
+                        lineNumber: 642,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1071,7 +1251,7 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                         }
                     }, void 0, false, {
                         fileName: "[project]/src/components/TextEditor.tsx",
-                        lineNumber: 521,
+                        lineNumber: 649,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(IconBtn, {
@@ -1090,17 +1270,17 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                 d: "M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
                             }, void 0, false, {
                                 fileName: "[project]/src/components/TextEditor.tsx",
-                                lineNumber: 526,
+                                lineNumber: 654,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/components/TextEditor.tsx",
-                            lineNumber: 525,
+                            lineNumber: 653,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/components/TextEditor.tsx",
-                        lineNumber: 524,
+                        lineNumber: 652,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -1117,7 +1297,7 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                         }
                     }, void 0, false, {
                         fileName: "[project]/src/components/TextEditor.tsx",
-                        lineNumber: 529,
+                        lineNumber: 657,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(IconBtn, {
@@ -1154,7 +1334,7 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                     r: "2.5"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/TextEditor.tsx",
-                                    lineNumber: 537,
+                                    lineNumber: 665,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("line", {
@@ -1164,7 +1344,7 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                     y2: "7"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/TextEditor.tsx",
-                                    lineNumber: 537,
+                                    lineNumber: 665,
                                     columnNumber: 44
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("circle", {
@@ -1173,7 +1353,7 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                     r: "2.5"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/TextEditor.tsx",
-                                    lineNumber: 538,
+                                    lineNumber: 666,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("line", {
@@ -1183,18 +1363,18 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                     y2: "17"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/TextEditor.tsx",
-                                    lineNumber: 538,
+                                    lineNumber: 666,
                                     columnNumber: 45
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/components/TextEditor.tsx",
-                            lineNumber: 536,
+                            lineNumber: 664,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/components/TextEditor.tsx",
-                        lineNumber: 534,
+                        lineNumber: 662,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1227,7 +1407,7 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                             rx: "2"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/TextEditor.tsx",
-                                            lineNumber: 547,
+                                            lineNumber: 675,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("line", {
@@ -1237,7 +1417,7 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                             y2: "9"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/TextEditor.tsx",
-                                            lineNumber: 548,
+                                            lineNumber: 676,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("line", {
@@ -1247,7 +1427,7 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                             y2: "15"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/TextEditor.tsx",
-                                            lineNumber: 548,
+                                            lineNumber: 676,
                                             columnNumber: 51
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("line", {
@@ -1257,7 +1437,7 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                             y2: "21"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/TextEditor.tsx",
-                                            lineNumber: 549,
+                                            lineNumber: 677,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("line", {
@@ -1267,18 +1447,18 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                             y2: "21"
                                         }, void 0, false, {
                                             fileName: "[project]/src/components/TextEditor.tsx",
-                                            lineNumber: 549,
+                                            lineNumber: 677,
                                             columnNumber: 51
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/components/TextEditor.tsx",
-                                    lineNumber: 546,
+                                    lineNumber: 674,
                                     columnNumber: 13
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/components/TextEditor.tsx",
-                                lineNumber: 544,
+                                lineNumber: 672,
                                 columnNumber: 11
                             }, this),
                             showTablePicker && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(TablePicker, {
@@ -1286,13 +1466,13 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                                 onClose: ()=>setShowTablePicker(false)
                             }, void 0, false, {
                                 fileName: "[project]/src/components/TextEditor.tsx",
-                                lineNumber: 553,
+                                lineNumber: 681,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/components/TextEditor.tsx",
-                        lineNumber: 543,
+                        lineNumber: 671,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1301,13 +1481,13 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                         }
                     }, void 0, false, {
                         fileName: "[project]/src/components/TextEditor.tsx",
-                        lineNumber: 557,
+                        lineNumber: 685,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/TextEditor.tsx",
-                lineNumber: 506,
+                lineNumber: 634,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1328,12 +1508,12 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                             editor: editor
                         }, void 0, false, {
                             fileName: "[project]/src/components/TextEditor.tsx",
-                            lineNumber: 563,
+                            lineNumber: 691,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/components/TextEditor.tsx",
-                        lineNumber: 562,
+                        lineNumber: 690,
                         columnNumber: 9
                     }, this),
                     overlays.map((ov)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(OverlayItem, {
@@ -1342,13 +1522,13 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                             onUpdate: (patch)=>updateOverlay(ov.id, patch)
                         }, ov.id, false, {
                             fileName: "[project]/src/components/TextEditor.tsx",
-                            lineNumber: 568,
+                            lineNumber: 696,
                             columnNumber: 11
                         }, this))
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/TextEditor.tsx",
-                lineNumber: 561,
+                lineNumber: 689,
                 columnNumber: 7
             }, this),
             pages && onAddPage && onSelectPage && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(PageStrip, {
@@ -1358,29 +1538,30 @@ function TextEditor({ content, onChange, pages, currentPageIdx = 0, onAddPage, o
                 onAdd: onAddPage
             }, void 0, false, {
                 fileName: "[project]/src/components/TextEditor.tsx",
-                lineNumber: 577,
+                lineNumber: 705,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/TextEditor.tsx",
-        lineNumber: 487,
+        lineNumber: 615,
         columnNumber: 5
     }, this);
 }
-_s2(TextEditor, "5lp0B/1ccWmpiE2qjWk46fiGnjY=", false, function() {
+_s3(TextEditor, "5lp0B/1ccWmpiE2qjWk46fiGnjY=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tiptap$2f$react$2f$dist$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["useEditor"]
     ];
 });
-_c5 = TextEditor;
-var _c, _c1, _c2, _c3, _c4, _c5;
-__turbopack_context__.k.register(_c, "PageStrip");
-__turbopack_context__.k.register(_c1, "TablePicker");
-__turbopack_context__.k.register(_c2, "OverlayItem");
-__turbopack_context__.k.register(_c3, "FontMenu");
-__turbopack_context__.k.register(_c4, "IconBtn");
-__turbopack_context__.k.register(_c5, "TextEditor");
+_c6 = TextEditor;
+var _c, _c1, _c2, _c3, _c4, _c5, _c6;
+__turbopack_context__.k.register(_c, "DataSparkComponent");
+__turbopack_context__.k.register(_c1, "PageStrip");
+__turbopack_context__.k.register(_c2, "TablePicker");
+__turbopack_context__.k.register(_c3, "OverlayItem");
+__turbopack_context__.k.register(_c4, "FontMenu");
+__turbopack_context__.k.register(_c5, "IconBtn");
+__turbopack_context__.k.register(_c6, "TextEditor");
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
 }
@@ -4408,6 +4589,7 @@ function Home() {
     const [section, setSection] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('files');
     const [focusMode, setFocusMode] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [saveFlash, setSaveFlash] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [bridgeResolver, setBridgeResolver] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     // Tracks whether the initial localStorage load has completed.
     // Prevents the default files from being written back to localStorage
     // before we've had a chance to read what's already stored there.
@@ -4446,6 +4628,84 @@ function Home() {
     }["Home.useEffect"], [
         files
     ]);
+    // ── Data Bridge Logic ─────────────────────────────────────────────────────
+    const filesRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(files);
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "Home.useEffect": ()=>{
+            filesRef.current = files;
+        }
+    }["Home.useEffect"], [
+        files
+    ]);
+    const executeBridge = (fileId, payload)=>{
+        setFiles((prev)=>prev.map((f)=>{
+                if (f.id === fileId) {
+                    let data = [];
+                    try {
+                        data = JSON.parse(f.content);
+                    } catch (e) {}
+                    if (!Array.isArray(data)) data = [];
+                    const amountToAdd = Number(payload.amount) || 0;
+                    const targetCat = payload.category.trim();
+                    const targetCatLower = targetCat.toLowerCase();
+                    // Check if this category already exists (case-insensitive)
+                    const existingIndex = data.findIndex((row)=>row.category && String(row.category).toLowerCase().trim() === targetCatLower);
+                    if (existingIndex >= 0) {
+                        // Add to existing amount
+                        data[existingIndex].amount = (Number(data[existingIndex].amount) || 0) + amountToAdd;
+                        // Update the date to show it was recently modified
+                        data[existingIndex].date = new Date().toISOString().split('T')[0];
+                    } else {
+                        // Push new category row
+                        data.push({
+                            id: Date.now(),
+                            date: new Date().toISOString().split('T')[0],
+                            category: targetCat,
+                            amount: amountToAdd
+                        });
+                    }
+                    return {
+                        ...f,
+                        content: JSON.stringify(data)
+                    };
+                }
+                return f;
+            }));
+        setSaveFlash(true);
+        setTimeout(()=>setSaveFlash(false), 1800);
+        setBridgeResolver(null);
+    };
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "Home.useEffect": ()=>{
+            const handleBridge = {
+                "Home.useEffect.handleBridge": (e)=>{
+                    const { filename, amount, category } = e.detail;
+                    let targetName = filename.trim();
+                    if (!targetName.toLowerCase().endsWith('.csv')) targetName += '.csv';
+                    const targetFile = filesRef.current.find({
+                        "Home.useEffect.handleBridge.targetFile": (f)=>f.name.toLowerCase() === targetName.toLowerCase()
+                    }["Home.useEffect.handleBridge.targetFile"]);
+                    if (targetFile) {
+                        executeBridge(targetFile.id, {
+                            amount,
+                            category
+                        });
+                    } else {
+                        setBridgeResolver({
+                            filename: targetName,
+                            amount,
+                            category
+                        });
+                    }
+                }
+            }["Home.useEffect.handleBridge"];
+            window.addEventListener('cortex-bridge', handleBridge);
+            return ({
+                "Home.useEffect": ()=>window.removeEventListener('cortex-bridge', handleBridge)
+            })["Home.useEffect"];
+        }
+    }["Home.useEffect"], []);
+    // ──────────────────────────────────────────────────────────────────────────
     const activeFile = files.find((f)=>f.id === activeFileId) || files[0];
     const relatedFiles = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
         "Home.useMemo[relatedFiles]": ()=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$similarity$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getRelatedFiles"])(activeFileId, files, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$DynamicCanvas$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getFileType"], 4)
@@ -4614,7 +4874,7 @@ function Home() {
                                     children: "✦"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/page.tsx",
-                                    lineNumber: 195,
+                                    lineNumber: 260,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4627,18 +4887,18 @@ function Home() {
                                     children: "CORTEX"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/page.tsx",
-                                    lineNumber: 199,
+                                    lineNumber: 264,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/page.tsx",
-                            lineNumber: 194,
+                            lineNumber: 259,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 193,
+                        lineNumber: 258,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4684,17 +4944,17 @@ function Home() {
                                     children: label
                                 }, key, false, {
                                     fileName: "[project]/src/app/page.tsx",
-                                    lineNumber: 210,
+                                    lineNumber: 275,
                                     columnNumber: 15
                                 }, this))
                         }, void 0, false, {
                             fileName: "[project]/src/app/page.tsx",
-                            lineNumber: 205,
+                            lineNumber: 270,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 204,
+                        lineNumber: 269,
                         columnNumber: 9
                     }, this),
                     section === 'files' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4716,7 +4976,7 @@ function Home() {
                                 children: "Workspace Files"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 227,
+                                lineNumber: 292,
                                 columnNumber: 13
                             }, this),
                             files.map((f)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4751,7 +5011,7 @@ function Home() {
                                             children: getFileIcon(f.name)
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/page.tsx",
-                                            lineNumber: 254,
+                                            lineNumber: 319,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4767,7 +5027,7 @@ function Home() {
                                             children: f.name
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/page.tsx",
-                                            lineNumber: 257,
+                                            lineNumber: 322,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4791,13 +5051,13 @@ function Home() {
                                             children: "×"
                                         }, void 0, false, {
                                             fileName: "[project]/src/app/page.tsx",
-                                            lineNumber: 264,
+                                            lineNumber: 329,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, f.id, true, {
                                     fileName: "[project]/src/app/page.tsx",
-                                    lineNumber: 234,
+                                    lineNumber: 299,
                                     columnNumber: 15
                                 }, this)),
                             relatedFiles.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4830,14 +5090,14 @@ function Home() {
                                                 }
                                             }, void 0, false, {
                                                 fileName: "[project]/src/app/page.tsx",
-                                                lineNumber: 286,
+                                                lineNumber: 351,
                                                 columnNumber: 19
                                             }, this),
                                             "Related"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/app/page.tsx",
-                                        lineNumber: 282,
+                                        lineNumber: 347,
                                         columnNumber: 17
                                     }, this),
                                     relatedFiles.map((r)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4875,7 +5135,7 @@ function Home() {
                                                             children: getFileIcon(r.name)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/page.tsx",
-                                                            lineNumber: 298,
+                                                            lineNumber: 363,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4890,7 +5150,7 @@ function Home() {
                                                             children: r.name
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/app/page.tsx",
-                                                            lineNumber: 299,
+                                                            lineNumber: 364,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4907,13 +5167,13 @@ function Home() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/app/page.tsx",
-                                                            lineNumber: 305,
+                                                            lineNumber: 370,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/app/page.tsx",
-                                                    lineNumber: 297,
+                                                    lineNumber: 362,
                                                     columnNumber: 21
                                                 }, this),
                                                 r.reason && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4928,25 +5188,25 @@ function Home() {
                                                     children: r.reason
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/page.tsx",
-                                                    lineNumber: 310,
+                                                    lineNumber: 375,
                                                     columnNumber: 23
                                                 }, this)
                                             ]
                                         }, r.id, true, {
                                             fileName: "[project]/src/app/page.tsx",
-                                            lineNumber: 290,
+                                            lineNumber: 355,
                                             columnNumber: 19
                                         }, this))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 281,
+                                lineNumber: 346,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 226,
+                        lineNumber: 291,
                         columnNumber: 11
                     }, this),
                     section === 'consciousness' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4968,7 +5228,7 @@ function Home() {
                                 children: "Consciousness"
                             }, void 0, false, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 326,
+                                lineNumber: 391,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4980,7 +5240,7 @@ function Home() {
                                 children: "Nodes are your files. Edges show semantic connections based on type and naming."
                             }, void 0, false, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 332,
+                                lineNumber: 397,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4999,7 +5259,7 @@ function Home() {
                                         children: "Legend"
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/page.tsx",
-                                        lineNumber: 336,
+                                        lineNumber: 401,
                                         columnNumber: 15
                                     }, this),
                                     [
@@ -5039,26 +5299,26 @@ function Home() {
                                                     children: icon
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/page.tsx",
-                                                    lineNumber: 339,
+                                                    lineNumber: 404,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                     children: label
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/app/page.tsx",
-                                                    lineNumber: 340,
+                                                    lineNumber: 405,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, label, true, {
                                             fileName: "[project]/src/app/page.tsx",
-                                            lineNumber: 338,
+                                            lineNumber: 403,
                                             columnNumber: 17
                                         }, this))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 335,
+                                lineNumber: 400,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5075,13 +5335,13 @@ function Home() {
                                 children: "💡 Click any node in the graph to open that file."
                             }, void 0, false, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 344,
+                                lineNumber: 409,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 325,
+                        lineNumber: 390,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5114,25 +5374,25 @@ function Home() {
                                     children: "+"
                                 }, void 0, false, {
                                     fileName: "[project]/src/app/page.tsx",
-                                    lineNumber: 362,
+                                    lineNumber: 427,
                                     columnNumber: 13
                                 }, this),
                                 " New File"
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/app/page.tsx",
-                            lineNumber: 356,
+                            lineNumber: 421,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 355,
+                        lineNumber: 420,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/page.tsx",
-                lineNumber: 185,
+                lineNumber: 250,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5172,7 +5432,7 @@ function Home() {
                                         children: getFileIcon(activeFile.name)
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/page.tsx",
-                                        lineNumber: 375,
+                                        lineNumber: 440,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -5185,7 +5445,7 @@ function Home() {
                                         placeholder: "Filename..."
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/page.tsx",
-                                        lineNumber: 376,
+                                        lineNumber: 441,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -5200,13 +5460,13 @@ function Home() {
                                         children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$DynamicCanvas$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getFileType"])(activeFile.name)
                                     }, void 0, false, {
                                         fileName: "[project]/src/app/page.tsx",
-                                        lineNumber: 383,
+                                        lineNumber: 448,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 374,
+                                lineNumber: 439,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -5230,7 +5490,7 @@ function Home() {
                                 children: saveFlash ? '✓ Saved' : '⬇ Save'
                             }, void 0, false, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 392,
+                                lineNumber: 457,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -5253,13 +5513,13 @@ function Home() {
                                 children: focusMode ? '◧ Exit Focus' : '▣ Focus'
                             }, void 0, false, {
                                 fileName: "[project]/src/app/page.tsx",
-                                lineNumber: 408,
+                                lineNumber: 473,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 370,
+                        lineNumber: 435,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5274,7 +5534,7 @@ function Home() {
                             onSelectFile: handleSelectFromGraph
                         }, void 0, false, {
                             fileName: "[project]/src/app/page.tsx",
-                            lineNumber: 427,
+                            lineNumber: 492,
                             columnNumber: 13
                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$DynamicCanvas$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
                             file: {
@@ -5303,28 +5563,219 @@ function Home() {
                             onChangeBgType: (t)=>handleChangeBgType(activeFile.id, currentPageIdx, t)
                         }, `${activeFile.id}-${currentPageIdx}`, false, {
                             fileName: "[project]/src/app/page.tsx",
-                            lineNumber: 433,
+                            lineNumber: 498,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/app/page.tsx",
-                        lineNumber: 425,
+                        lineNumber: 490,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/app/page.tsx",
-                lineNumber: 368,
+                lineNumber: 433,
                 columnNumber: 7
+            }, this),
+            bridgeResolver && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                style: {
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.6)',
+                    backdropFilter: 'blur(4px)',
+                    zIndex: 1000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                },
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    style: {
+                        background: B.surface,
+                        border: `1px solid ${B.border}`,
+                        color: B.text,
+                        padding: 24,
+                        borderRadius: 12,
+                        width: 400,
+                        boxShadow: '0 12px 40px rgba(0,0,0,0.5)'
+                    },
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            style: {
+                                fontSize: 18,
+                                fontWeight: 600,
+                                marginBottom: 8
+                            },
+                            children: "Data Bridge: File Not Found"
+                        }, void 0, false, {
+                            fileName: "[project]/src/app/page.tsx",
+                            lineNumber: 531,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            style: {
+                                fontSize: 13,
+                                color: B.muted,
+                                marginBottom: 20
+                            },
+                            children: [
+                                "Could not find ",
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
+                                    style: {
+                                        color: B.amber
+                                    },
+                                    children: bridgeResolver.filename
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/page.tsx",
+                                    lineNumber: 533,
+                                    columnNumber: 30
+                                }, this),
+                                ". What would you like to do?"
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/app/page.tsx",
+                            lineNumber: 532,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            style: {
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 8,
+                                maxHeight: 200,
+                                overflowY: 'auto',
+                                marginBottom: 20
+                            },
+                            children: [
+                                files.filter((f)=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$DynamicCanvas$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getFileType"])(f.name) === 'finance').map((f)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        onClick: ()=>executeBridge(f.id, bridgeResolver),
+                                        style: {
+                                            padding: '10px 14px',
+                                            background: B.bg,
+                                            border: `1px solid ${B.border}`,
+                                            borderRadius: 8,
+                                            color: B.text,
+                                            cursor: 'pointer',
+                                            textAlign: 'left',
+                                            transition: 'all 0.2s'
+                                        },
+                                        onMouseEnter: (e)=>e.currentTarget.style.borderColor = B.amber,
+                                        onMouseLeave: (e)=>e.currentTarget.style.borderColor = B.border,
+                                        children: [
+                                            "Log to ",
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("strong", {
+                                                style: {
+                                                    color: '#4dba84'
+                                                },
+                                                children: f.name
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/app/page.tsx",
+                                                lineNumber: 545,
+                                                columnNumber: 26
+                                            }, this)
+                                        ]
+                                    }, f.id, true, {
+                                        fileName: "[project]/src/app/page.tsx",
+                                        lineNumber: 538,
+                                        columnNumber: 17
+                                    }, this)),
+                                files.filter((f)=>(0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$DynamicCanvas$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["getFileType"])(f.name) === 'finance').length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    style: {
+                                        fontSize: 12,
+                                        color: B.muted,
+                                        fontStyle: 'italic',
+                                        padding: '4px 0'
+                                    },
+                                    children: "No existing ledger files found."
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/page.tsx",
+                                    lineNumber: 549,
+                                    columnNumber: 17
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/app/page.tsx",
+                            lineNumber: 536,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            style: {
+                                display: 'flex',
+                                gap: 10
+                            },
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                    onClick: ()=>{
+                                        const newFile = {
+                                            id: Date.now().toString(),
+                                            name: bridgeResolver.filename,
+                                            content: '[]'
+                                        };
+                                        setFiles((prev)=>[
+                                                ...prev,
+                                                newFile
+                                            ]);
+                                        executeBridge(newFile.id, bridgeResolver);
+                                    },
+                                    style: {
+                                        flex: 1,
+                                        padding: 10,
+                                        background: B.amber,
+                                        color: '#000',
+                                        border: 'none',
+                                        borderRadius: 8,
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                    },
+                                    children: "+ Create New Ledger"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/page.tsx",
+                                    lineNumber: 554,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                    onClick: ()=>setBridgeResolver(null),
+                                    style: {
+                                        padding: 10,
+                                        background: 'transparent',
+                                        color: B.muted,
+                                        border: `1px solid ${B.border}`,
+                                        borderRadius: 8,
+                                        cursor: 'pointer'
+                                    },
+                                    children: "Cancel"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/app/page.tsx",
+                                    lineNumber: 566,
+                                    columnNumber: 15
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/app/page.tsx",
+                            lineNumber: 553,
+                            columnNumber: 13
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/src/app/page.tsx",
+                    lineNumber: 527,
+                    columnNumber: 11
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/src/app/page.tsx",
+                lineNumber: 522,
+                columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/app/page.tsx",
-        lineNumber: 179,
+        lineNumber: 244,
         columnNumber: 5
     }, this);
 }
-_s(Home, "v+0IDpxjnB/rpUlaCvlwVyEsimU=");
+_s(Home, "mgkzMvonaIWxm7yR+dR351EHB0U=");
 _c = Home;
 var _c;
 __turbopack_context__.k.register(_c, "Home");

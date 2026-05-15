@@ -42,6 +42,7 @@ export default function Home() {
   const [section, setSection]           = useState<'files' | 'consciousness'>('files');
   const [focusMode, setFocusMode]       = useState(false);
   const [saveFlash, setSaveFlash]       = useState(false);
+  const [bridgeResolver, setBridgeResolver] = useState<{ filename: string, amount: string, category: string } | null>(null);
 
   // Tracks whether the initial localStorage load has completed.
   // Prevents the default files from being written back to localStorage
@@ -77,6 +78,70 @@ export default function Home() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
     } catch {}
   }, [files]);
+
+  // ── Data Bridge Logic ─────────────────────────────────────────────────────
+  const filesRef = useRef(files);
+  useEffect(() => { filesRef.current = files; }, [files]);
+
+  const executeBridge = (fileId: string, payload: { amount: string, category: string }) => {
+    setFiles(prev => prev.map(f => {
+      if (f.id === fileId) {
+        let data = [];
+        try { data = JSON.parse(f.content); } catch (e) {}
+        if (!Array.isArray(data)) data = [];
+        
+        const amountToAdd = Number(payload.amount) || 0;
+        const targetCat = payload.category.trim();
+        const targetCatLower = targetCat.toLowerCase();
+        
+        // Check if this category already exists (case-insensitive)
+        const existingIndex = data.findIndex((row: any) => 
+          row.category && String(row.category).toLowerCase().trim() === targetCatLower
+        );
+        
+        if (existingIndex >= 0) {
+          // Add to existing amount
+          data[existingIndex].amount = (Number(data[existingIndex].amount) || 0) + amountToAdd;
+          // Update the date to show it was recently modified
+          data[existingIndex].date = new Date().toISOString().split('T')[0];
+        } else {
+          // Push new category row
+          data.push({
+            id: Date.now(),
+            date: new Date().toISOString().split('T')[0],
+            category: targetCat,
+            amount: amountToAdd
+          });
+        }
+        
+        return { ...f, content: JSON.stringify(data) };
+      }
+      return f;
+    }));
+    
+    setSaveFlash(true);
+    setTimeout(() => setSaveFlash(false), 1800);
+    setBridgeResolver(null);
+  };
+
+  useEffect(() => {
+    const handleBridge = (e: CustomEvent<{filename: string, amount: string, category: string}>) => {
+      const { filename, amount, category } = e.detail;
+      let targetName = filename.trim();
+      if (!targetName.toLowerCase().endsWith('.csv')) targetName += '.csv';
+      
+      const targetFile = filesRef.current.find(f => f.name.toLowerCase() === targetName.toLowerCase());
+      
+      if (targetFile) {
+        executeBridge(targetFile.id, { amount, category });
+      } else {
+        setBridgeResolver({ filename: targetName, amount, category });
+      }
+    };
+    window.addEventListener('cortex-bridge', handleBridge as EventListener);
+    return () => window.removeEventListener('cortex-bridge', handleBridge as EventListener);
+  }, []);
+  // ──────────────────────────────────────────────────────────────────────────
 
   const activeFile = files.find(f => f.id === activeFileId) || files[0];
 
@@ -451,6 +516,61 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* ── Data Bridge Resolver Modal ── */}
+      {bridgeResolver && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: B.surface, border: `1px solid ${B.border}`, color: B.text,
+            padding: 24, borderRadius: 12, width: 400, boxShadow: '0 12px 40px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Data Bridge: File Not Found</div>
+            <div style={{ fontSize: 13, color: B.muted, marginBottom: 20 }}>
+              Could not find <strong style={{ color: B.amber }}>{bridgeResolver.filename}</strong>. What would you like to do?
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 200, overflowY: 'auto', marginBottom: 20 }}>
+              {files.filter(f => getFileType(f.name) === 'finance').map(f => (
+                <button key={f.id} onClick={() => executeBridge(f.id, bridgeResolver)} style={{
+                  padding: '10px 14px', background: B.bg, border: `1px solid ${B.border}`,
+                  borderRadius: 8, color: B.text, cursor: 'pointer', textAlign: 'left',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = B.amber}
+                onMouseLeave={e => e.currentTarget.style.borderColor = B.border}>
+                  Log to <strong style={{ color: '#4dba84' }}>{f.name}</strong>
+                </button>
+              ))}
+              {files.filter(f => getFileType(f.name) === 'finance').length === 0 && (
+                <div style={{ fontSize: 12, color: B.muted, fontStyle: 'italic', padding: '4px 0' }}>No existing ledger files found.</div>
+              )}
+            </div>
+            
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => {
+                const newFile: WorkspaceFile = {
+                  id: Date.now().toString(),
+                  name: bridgeResolver.filename,
+                  content: '[]'
+                };
+                setFiles(prev => [...prev, newFile]);
+                executeBridge(newFile.id, bridgeResolver);
+              }} style={{
+                flex: 1, padding: 10, background: B.amber, color: '#000', border: 'none',
+                borderRadius: 8, fontWeight: 600, cursor: 'pointer'
+              }}>+ Create New Ledger</button>
+              <button onClick={() => setBridgeResolver(null)} style={{
+                padding: 10, background: 'transparent', color: B.muted, border: `1px solid ${B.border}`,
+                borderRadius: 8, cursor: 'pointer'
+              }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

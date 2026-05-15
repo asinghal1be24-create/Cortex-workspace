@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.76",
+    "@ai-sdk/google": "^3.0.73",
     "@monaco-editor/react": "^4.7.0",
     "@supabase/supabase-js": "^2.105.4",
     "@tiptap/extension-image": "^3.23.1",
