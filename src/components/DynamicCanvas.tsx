@@ -19,7 +19,8 @@ export function getFileType(name: string): FileType {
   
   if (
     lower.endsWith(".js") || lower.endsWith(".jsx") || lower.endsWith(".ts") || lower.endsWith(".tsx") ||
-    lower.endsWith(".py") || lower.endsWith(".m") || lower.endsWith(".sql") || lower.endsWith(".html") || lower.endsWith(".css")
+    lower.endsWith(".py") || lower.endsWith(".m") || lower.endsWith(".sql") || lower.endsWith(".html") || lower.endsWith(".css") ||
+    lower.endsWith(".cpp") || lower.endsWith(".c") || lower.endsWith(".h") || lower.endsWith(".hpp")
   ) {
     return "code";
   }
