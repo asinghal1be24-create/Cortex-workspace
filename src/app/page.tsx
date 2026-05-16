@@ -44,13 +44,20 @@ export default function Home() {
   const [saveFlash, setSaveFlash]       = useState(false);
   const [bridgeResolver, setBridgeResolver] = useState<{ filename: string, amount: string, category: string } | null>(null);
 
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   // Tracks whether the initial localStorage load has completed.
-  // Prevents the default files from being written back to localStorage
-  // before we've had a chance to read what's already stored there.
   const hasLoaded = useRef(false);
 
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize(); // Initial check
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Load persisted data from localStorage after first render (client-only).
-  // This runs once on mount and is invisible to the server — no hydration mismatch.
   useEffect(() => {
     try {
       const rawFiles = localStorage.getItem(STORAGE_KEY);
@@ -66,14 +73,12 @@ export default function Home() {
         setPagesMap(JSON.parse(rawPages) as PagesMap);
       }
     } catch {}
-    // Mark load as complete — auto-save effects below will now run
     hasLoaded.current = true;
   }, []);
 
-  // Auto-save the file LIST whenever it changes (handles delete, create, rename).
-  // Content (pagesMap) is only saved when the user clicks the Save button.
+  // Auto-save the file LIST whenever it changes
   useEffect(() => {
-    if (!hasLoaded.current) return; // skip the initial render with DEFAULT_FILES
+    if (!hasLoaded.current) return; 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(files));
     } catch {}
@@ -94,18 +99,14 @@ export default function Home() {
         const targetCat = payload.category.trim();
         const targetCatLower = targetCat.toLowerCase();
         
-        // Check if this category already exists (case-insensitive)
         const existingIndex = data.findIndex((row: any) => 
           row.category && String(row.category).toLowerCase().trim() === targetCatLower
         );
         
         if (existingIndex >= 0) {
-          // Add to existing amount
           data[existingIndex].amount = (Number(data[existingIndex].amount) || 0) + amountToAdd;
-          // Update the date to show it was recently modified
           data[existingIndex].date = new Date().toISOString().split('T')[0];
         } else {
-          // Push new category row
           data.push({
             id: Date.now(),
             date: new Date().toISOString().split('T')[0],
@@ -150,14 +151,12 @@ export default function Home() {
     [activeFileId, files]
   );
 
-  // ── Save button handler ───────────────────────────────────────────────────
   const handleSave = () => {
     saveToStorage(files, pagesMap);
     setSaveFlash(true);
     setTimeout(() => setSaveFlash(false), 1800);
   };
 
-  // ── Pages helpers ─────────────────────────────────────────────────────────
   const getPages = (fileId: string, fallbackContent: string) =>
     pagesMap[fileId] ?? [{ id: 1, content: fallbackContent }];
 
@@ -181,7 +180,6 @@ export default function Home() {
     setPagesMap(prev => ({ ...prev, [fileId]: updated }));
   };
 
-  // ── File CRUD ─────────────────────────────────────────────────────────────
   const handleCreateFile = () => {
     const newFile: WorkspaceFile = {
       id: Date.now().toString(),
@@ -191,6 +189,7 @@ export default function Home() {
     setFiles([...files, newFile]);
     setActiveFileId(newFile.id);
     setSection('files');
+    if (isMobile) setMobileMenuOpen(false);
   };
 
   const handleUpdateFileName = (id: string, newName: string) => {
@@ -220,6 +219,7 @@ export default function Home() {
   const handleSelectFromGraph = (id: string) => {
     setActiveFileId(id);
     setSection('files');
+    if (isMobile) setMobileMenuOpen(false);
   };
 
   const B = {
@@ -240,22 +240,42 @@ export default function Home() {
   const pages = supportsPages ? getPages(activeFile.id, activeFile.content) : null;
   const currentPageIdx = getCurrentPageIdx(activeFile.id);
 
+  // Sidebar width logic
+  let sidebarWidth = 260;
+  if (focusMode && !isMobile) sidebarWidth = 0;
+  if (isMobile && !mobileMenuOpen) sidebarWidth = 0;
+
   return (
     <div style={{
       display: 'flex', height: '100vh', background: B.bg, color: B.text,
       fontFamily: "var(--font-dm-sans), system-ui, sans-serif",
-      minWidth: 880, overflow: 'hidden'
+      minWidth: isMobile ? 320 : 880, overflow: 'hidden', position: 'relative'
     }}>
+      {/* Mobile Overlay */}
+      {isMobile && mobileMenuOpen && (
+        <div 
+          onClick={() => setMobileMenuOpen(false)}
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.5)', zIndex: 40, backdropFilter: 'blur(2px)'
+          }}
+        />
+      )}
+
       {/* ── SIDEBAR ── */}
       <div style={{
-        width: focusMode ? 0 : 260,
+        width: sidebarWidth,
         overflow: 'hidden',
-        background: B.sidebar, borderRight: focusMode ? 'none' : `1px solid ${B.border}`,
+        background: B.sidebar, 
+        borderRight: sidebarWidth === 0 ? 'none' : `1px solid ${B.border}`,
         display: 'flex', flexDirection: 'column', flexShrink: 0,
-        transition: 'width 0.25s ease',
+        transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        position: isMobile ? 'absolute' : 'relative',
+        top: 0, bottom: 0, left: 0,
+        zIndex: isMobile ? 50 : 1,
       }}>
         {/* Logo */}
-        <div style={{ padding: '20px 18px 14px', borderBottom: `1px solid ${B.border}` }}>
+        <div style={{ padding: '20px 18px 14px', borderBottom: `1px solid ${B.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{
               width: 26, height: 26, borderRadius: 8, background: B.amber,
@@ -263,6 +283,9 @@ export default function Home() {
             }}>✦</div>
             <span style={{ fontSize: 16, fontWeight: 500, color: B.text, letterSpacing: -.3 }}>CORTEX</span>
           </div>
+          {isMobile && (
+            <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'none', border: 'none', color: B.muted, fontSize: 20, cursor: 'pointer' }}>×</button>
+          )}
         </div>
 
         {/* Section toggle */}
@@ -298,29 +321,24 @@ export default function Home() {
             {files.map(f => (
               <div
                 key={f.id}
-                onClick={() => setActiveFileId(f.id)}
+                onClick={() => {
+                  setActiveFileId(f.id);
+                  if (isMobile) setMobileMenuOpen(false);
+                }}
                 style={{
-                  padding: '9px 10px', borderRadius: 8, marginBottom: 2, cursor: 'pointer',
+                  padding: '12px 10px', borderRadius: 8, marginBottom: 2, cursor: 'pointer',
                   background: activeFileId === f.id ? B.amberGlow : 'transparent',
                   border: activeFileId === f.id ? `1px solid ${B.amberBorder}` : '1px solid transparent',
                   transition: 'all .15s',
                   display: 'flex', alignItems: 'center', gap: 8,
                   position: 'relative'
                 }}
-                onMouseEnter={e => {
-                  const btn = (e.currentTarget as HTMLElement).querySelector('.del-btn') as HTMLElement;
-                  if (btn) btn.style.opacity = '1';
-                }}
-                onMouseLeave={e => {
-                  const btn = (e.currentTarget as HTMLElement).querySelector('.del-btn') as HTMLElement;
-                  if (btn) btn.style.opacity = '0';
-                }}
               >
-                <span style={{ fontSize: 12, color: activeFileId === f.id ? B.amber : B.muted }}>
+                <span style={{ fontSize: 14, color: activeFileId === f.id ? B.amber : B.muted }}>
                   {getFileIcon(f.name)}
                 </span>
                 <span style={{
-                  fontSize: 13, fontWeight: 500, flex: 1,
+                  fontSize: 14, fontWeight: 500, flex: 1,
                   color: activeFileId === f.id ? B.text : '#b8b5cc',
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                 }}>
@@ -330,9 +348,9 @@ export default function Home() {
                   className="del-btn"
                   onClick={e => { e.stopPropagation(); handleDeleteFile(f.id); }}
                   style={{
-                    opacity: 0, transition: 'opacity .15s',
-                    fontSize: 14, lineHeight: 1, color: B.muted,
-                    flexShrink: 0, padding: '0 2px',
+                    opacity: isMobile ? 1 : 0, transition: 'opacity .15s',
+                    fontSize: 18, lineHeight: 1, color: B.muted,
+                    flexShrink: 0, padding: '0 4px',
                     background: 'none', border: 'none', cursor: 'pointer',
                   }}
                 >
@@ -352,33 +370,19 @@ export default function Home() {
                   Related
                 </div>
                 {relatedFiles.map(r => (
-                  <div key={r.id} onClick={() => setActiveFileId(r.id)} style={{
-                    padding: '8px 10px', borderRadius: 8, marginBottom: 2, cursor: 'pointer',
+                  <div key={r.id} onClick={() => { setActiveFileId(r.id); if(isMobile) setMobileMenuOpen(false); }} style={{
+                    padding: '10px', borderRadius: 8, marginBottom: 2, cursor: 'pointer',
                     border: '1px solid transparent', transition: 'all .15s',
-                  }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = B.surface; (e.currentTarget as HTMLElement).style.border = `1px solid ${B.border}`; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.border = '1px solid transparent'; }}
-                  >
+                  }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                      <span style={{ fontSize: 11, color: B.muted }}>{getFileIcon(r.name)}</span>
+                      <span style={{ fontSize: 13, color: B.muted }}>{getFileIcon(r.name)}</span>
                       <span style={{
-                        fontSize: 12, fontWeight: 500, color: '#b8b5cc',
+                        fontSize: 13, fontWeight: 500, color: '#b8b5cc',
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
                       }}>
                         {r.name}
                       </span>
-                      <span style={{ marginLeft: 'auto', fontSize: 10, color: '#4dba84', fontWeight: 600, flexShrink: 0 }}>
-                        {Math.round(r.score * 100)}%
-                      </span>
                     </div>
-                    {r.reason && (
-                      <div style={{
-                        fontSize: 10, color: B.muted, paddingLeft: 18,
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
-                      }}>
-                        {r.reason}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -395,16 +399,7 @@ export default function Home() {
               Consciousness
             </div>
             <div style={{ fontSize: 12, color: B.muted, lineHeight: 1.7 }}>
-              Nodes are your files. Edges show semantic connections based on type and naming.
-            </div>
-            <div style={{ marginTop: 16, fontSize: 12, color: B.muted }}>
-              <div style={{ marginBottom: 8, fontWeight: 500, color: B.text }}>Legend</div>
-              {[['☰', '#6199f5', 'Text / Notes'], ['⟨⟩', '#9b7ff0', 'Code'], ['⊞', '#4dba84', 'Finance'], ['⬡', '#f09532', 'Whiteboard']].map(([icon, color, label]) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <span style={{ color: color as string, fontSize: 13 }}>{icon}</span>
-                  <span>{label}</span>
-                </div>
-              ))}
+              Nodes are your files. Edges show semantic connections.
             </div>
             <div style={{
               marginTop: 20, padding: '10px 12px', borderRadius: 8,
@@ -419,12 +414,12 @@ export default function Home() {
         {/* New file button */}
         <div style={{ padding: '12px', borderTop: `1px solid ${B.border}` }}>
           <button onClick={handleCreateFile} style={{
-            width: '100%', padding: '8px', borderRadius: 8, fontSize: 12,
+            width: '100%', padding: '12px', borderRadius: 8, fontSize: 14,
             color: B.muted, border: `1px dashed ${B.border}`, fontWeight: 500,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             cursor: 'pointer'
           }}>
-            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> New File
+            <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New File
           </button>
         </div>
       </div>
@@ -433,56 +428,69 @@ export default function Home() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
         {section === 'files' && (
           <div style={{
-            height: 56, borderBottom: `1px solid ${B.border}`, display: 'flex',
-            alignItems: 'center', padding: '0 20px', gap: 16, flexShrink: 0, background: B.sidebar
+            height: isMobile ? 64 : 56, borderBottom: `1px solid ${B.border}`, display: 'flex',
+            alignItems: 'center', padding: isMobile ? '0 12px' : '0 20px', gap: isMobile ? 8 : 16, flexShrink: 0, background: B.sidebar
           }}>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ color: B.muted, fontSize: 13 }}>{getFileIcon(activeFile.name)}</span>
+            {isMobile && (
+              <button 
+                onClick={() => setMobileMenuOpen(true)}
+                style={{
+                  background: 'none', border: 'none', color: B.text, fontSize: 20, cursor: 'pointer',
+                  padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+              >
+                ☰
+              </button>
+            )}
+            
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10 }}>
+              {!isMobile && <span style={{ color: B.muted, fontSize: 13 }}>{getFileIcon(activeFile.name)}</span>}
               <input
                 value={activeFile.name}
                 onChange={(e) => handleUpdateFileName(activeFile.id, e.target.value)}
-                className="bg-transparent border-none outline-none font-medium text-sm min-w-[200px]"
-                style={{ color: B.text }}
+                className="bg-transparent border-none outline-none font-medium text-sm"
+                style={{ color: B.text, width: isMobile ? '120px' : '200px' }}
                 placeholder="Filename..."
               />
-              <span style={{
-                fontSize: 11, color: B.muted, background: B.surface,
-                padding: '2px 8px', borderRadius: 12, border: `1px solid ${B.border}`
-              }}>
-                {getFileType(activeFile.name)}
-              </span>
+              {!isMobile && (
+                <span style={{
+                  fontSize: 11, color: B.muted, background: B.surface,
+                  padding: '2px 8px', borderRadius: 12, border: `1px solid ${B.border}`
+                }}>
+                  {getFileType(activeFile.name)}
+                </span>
+              )}
             </div>
 
             {/* ── Save button ── */}
             <button
-              id="save-workspace-btn"
               onClick={handleSave}
-              title="Save all files to browser storage (Cmd+S)"
               style={{
-                padding: '4px 12px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+                padding: isMobile ? '6px 10px' : '4px 12px', borderRadius: 7, fontSize: 11, fontWeight: 500,
                 cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
                 background: saveFlash ? 'rgba(77,186,132,0.12)' : B.amberGlow,
                 color: saveFlash ? '#4dba84' : B.amber,
                 border: saveFlash ? '1px solid rgba(77,186,132,0.3)' : `1px solid ${B.amberBorder}`,
               }}
             >
-              {saveFlash ? '✓ Saved' : '⬇ Save'}
+              {saveFlash ? '✓' : '⬇'}{!isMobile && (saveFlash ? ' Saved' : ' Save')}
             </button>
 
-            {/* Focus Mode toggle */}
-            <button
-              onClick={() => setFocusMode(v => !v)}
-              title={focusMode ? 'Exit Focus Mode' : 'Focus Mode — hide sidebar'}
-              style={{
-                padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
-                cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
-                background: focusMode ? B.amberGlow : 'transparent',
-                color: focusMode ? B.amber : B.muted,
-                border: focusMode ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
-              }}
-            >
-              {focusMode ? '◧ Exit Focus' : '▣ Focus'}
-            </button>
+            {/* Focus Mode toggle (Desktop only) */}
+            {!isMobile && (
+              <button
+                onClick={() => setFocusMode(v => !v)}
+                style={{
+                  padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+                  cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
+                  background: focusMode ? B.amberGlow : 'transparent',
+                  color: focusMode ? B.amber : B.muted,
+                  border: focusMode ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
+                }}
+              >
+                {focusMode ? '◧ Exit Focus' : '▣ Focus'}
+              </button>
+            )}
           </div>
         )}
 
