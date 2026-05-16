@@ -81,7 +81,6 @@ function DataSparkComponent(props: any) {
 
     async function parseAI() {
       try {
-        // Find existing ledgers from localStorage so the AI knows what to match against
         let availableLedgers: string[] = [];
         try {
           const stored = localStorage.getItem('cortex_workspace_files');
@@ -98,9 +97,19 @@ function DataSparkComponent(props: any) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: rawText, availableLedgers })
         });
-        const data = await res.json();
         
-        if (!isMounted || !editor || editor.isDestroyed) return;
+        let data;
+        try {
+          data = await res.json();
+        } catch (e) {
+          throw new Error("Failed to parse API response as JSON");
+        }
+        
+        if (!isMounted) return;
+
+        if (!res.ok || data.error) {
+          throw new Error(data.error || "Server Error");
+        }
 
         if (data.isLogEvent) {
           updateAttributes({ 
@@ -120,14 +129,14 @@ function DataSparkComponent(props: any) {
         }
       } catch (error) {
         console.error("DataSpark AI Error:", error);
-        if (isMounted && editor && !editor.isDestroyed) {
+        if (isMounted) {
           updateAttributes({ status: 'error' });
         }
       }
     }
     parseAI();
     return () => { isMounted = false; };
-  }, [status, rawText, updateAttributes, editor]);
+  }, [status, rawText, updateAttributes]);
 
   // If the AI decides it's not a log, just render the original text back out
   if (status === 'ignored') {
@@ -186,6 +195,33 @@ const DataSparkNode = Node.create({
 
   addNodeView() {
     return ReactNodeViewRenderer(DataSparkComponent);
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      Enter: () => {
+        const { state } = this.editor;
+        const { $from, empty } = state.selection;
+        if (!empty) return false;
+
+        const text = $from.parent.textContent;
+        const match = text.match(/^\/log\s+(.+)$/i);
+
+        if (match) {
+          const rawText = match[1].trim();
+          
+          // Delete the typed command and insert the Spark dot
+          this.editor.chain()
+            .deleteRange({ from: $from.start(), to: $from.end() })
+            .insertContent({ type: this.name, attrs: { rawText } })
+            .run();
+            
+          // Return false so Tiptap still executes the normal 'Enter' action (creating a new line below the dot)
+          return false;
+        }
+        return false;
+      },
+    };
   },
 
   addInputRules() {
@@ -551,6 +587,7 @@ export default function TextEditor({
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [showFontMenu, setShowFontMenu] = useState(false);
   const [overlays, setOverlays] = useState<Overlay[]>([]);
+  const [isListening, setIsListening] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -618,6 +655,41 @@ export default function TextEditor({
   const isBulletActive = editor?.isActive('bulletList') ?? false;
   const isHeadingActive = FONT_LEVELS.some(f => f.cmd !== '14px' && editor?.isActive('fontSize', { fontSize: f.cmd }));
 
+  // ── Voice-to-Bridge ────────────────────────────────────────────────────────
+  const handleMicClick = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Voice recognition is not supported in this browser. Try Chrome or Safari.');
+      return;
+    }
+
+    if (isListening) return; // Prevent multiple instances
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    setIsListening(true);
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      if (transcript) {
+        // Automatically insert the AI Spark dot with the transcribed text
+        editor?.chain().focus().insertContent({
+          type: 'dataSpark',
+          attrs: { rawText: transcript }
+        }).run();
+      }
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+
+    recognition.start();
+  };
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
@@ -665,7 +737,22 @@ export default function TextEditor({
           onChange={e => { const f = e.target.files?.[0]; if (f) handleImageFile(f); e.target.value = ''; }}
         />
 
-        {/* Checklist — Pointer (overlay, same as whiteboard) */}
+        {/* Microphone — Voice-to-Bridge */}
+        <IconBtn title="Voice-to-Bridge (Dictate a log)" active={isListening} onClick={handleMicClick}>
+          {isListening ? (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="var(--color-cortex-amber)" stroke="none">
+              <circle cx="12" cy="12" r="8" />
+            </svg>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="22"></line>
+            </svg>
+          )}
+        </IconBtn>
+
+        {/* Checklist — Pointer */}
         <IconBtn title="Add checklist" active={false}
           onClick={() => addOverlay({ type: 'bullets', x: 80, y: 80, items: [{ text: 'Item one', checked: false }, { text: 'Item two', checked: false }] as unknown as CheckItem[] })}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
