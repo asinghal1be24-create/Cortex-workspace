@@ -249,7 +249,7 @@ export default function Home() {
     <div style={{
       display: 'flex', height: '100vh', background: B.bg, color: B.text,
       fontFamily: "var(--font-dm-sans), system-ui, sans-serif",
-      minWidth: isMobile ? 320 : 880, overflow: 'hidden', position: 'relative'
+      overflow: 'hidden', position: 'relative'
     }}>
       {/* Mobile Overlay */}
       {isMobile && mobileMenuOpen && (
