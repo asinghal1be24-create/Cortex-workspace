@@ -481,7 +481,7 @@ export default function Home() {
             {/* Copilot toggle */}
             <button
               onClick={() => setCopilotOpen(v => !v)}
-              title="Toggle AI Co-Pilot"
+              title="Toggle Neo"
               style={{
                 padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
                 cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
@@ -490,7 +490,7 @@ export default function Home() {
                 border: copilotOpen ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
               }}
             >
-              ✨ {isMobile ? '' : 'Co-Pilot'}
+              NEO
             </button>
           </div>
         )}

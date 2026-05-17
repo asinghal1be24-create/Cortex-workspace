@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { useChat } from "ai/react";
+import { useChat } from "@ai-sdk/react";
 
 interface AICopilotProps {
   isOpen: boolean;
@@ -71,8 +71,7 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
         alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', flexShrink: 0
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 16 }}>✨</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: B.amber, letterSpacing: 0.5 }}>CO-PILOT</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: B.amber, letterSpacing: 0.5 }}>NEO</span>
         </div>
         <button onClick={onClose} style={{
           background: 'none', border: 'none', color: B.muted, cursor: 'pointer', fontSize: 18
@@ -98,7 +97,7 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
               fontSize: 11, color: B.muted, marginBottom: 4, padding: '0 4px',
               textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 500
             }}>
-              {m.role === 'user' ? 'You' : 'Cortex AI'}
+              {m.role === 'user' ? 'You' : 'Neo'}
             </div>
             <div style={{
               background: m.role === 'user' ? B.elevated : 'transparent',
@@ -133,10 +132,10 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
               outline: 'none'
             }}
           />
-          <button type="submit" disabled={isLoading || !input.trim()} style={{
+          <button type="submit" disabled={isLoading || !input?.trim()} style={{
             background: B.amber, color: '#000', border: 'none', borderRadius: 8,
             padding: '0 14px', fontWeight: 600, cursor: isLoading ? 'not-allowed' : 'pointer',
-            opacity: (!input.trim() || isLoading) ? 0.5 : 1
+            opacity: (!input?.trim() || isLoading) ? 0.5 : 1
           }}>
             ↑
           </button>
