@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 
 interface AICopilotProps {
@@ -26,9 +26,7 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
     return ctx;
   };
 
-  const [text, setText] = useState("");
-
-  const { messages, append, isLoading, error } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: '/api/chat',
     body: {
       contextText: buildContext(),
@@ -132,15 +130,10 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
 
       {/* Input */}
       <div style={{ padding: '12px', borderTop: `1px solid ${B.border}`, background: B.surface }}>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          if (!text.trim() || isLoading) return;
-          append({ role: 'user', content: text });
-          setText("");
-        }} style={{ display: 'flex', gap: 8 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8 }}>
           <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
+            value={input}
+            onChange={handleInputChange}
             placeholder="Ask about your file..."
             style={{
               flex: 1, background: B.bg, border: `1px solid ${B.border}`,
@@ -148,10 +141,10 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
               outline: 'none'
             }}
           />
-          <button type="submit" disabled={isLoading || !text.trim()} style={{
+          <button type="submit" disabled={isLoading || !input?.trim()} style={{
             background: B.amber, color: '#000', border: 'none', borderRadius: 8,
             padding: '0 14px', fontWeight: 600, cursor: isLoading ? 'not-allowed' : 'pointer',
-            opacity: (!text.trim() || isLoading) ? 0.5 : 1
+            opacity: (!input?.trim() || isLoading) ? 0.5 : 1
           }}>
             ↑
           </button>
