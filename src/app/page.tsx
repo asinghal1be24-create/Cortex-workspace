@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { WorkspaceFile } from "@/types";
 import DynamicCanvas, { getFileType } from "@/components/DynamicCanvas";
 import ConsciousnessView from "@/components/ConsciousnessView";
+import AICopilot from "@/components/AICopilot";
 import { getRelatedFiles } from "@/lib/similarity";
 
 // ── localStorage helpers ───────────────────────────────────────────────────────
@@ -46,6 +47,7 @@ export default function Home() {
 
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [copilotOpen, setCopilotOpen] = useState(false);
 
   // Tracks whether the initial localStorage load has completed.
   const hasLoaded = useRef(false);
@@ -476,52 +478,64 @@ export default function Home() {
               {saveFlash ? '✓' : '⬇'}{!isMobile && (saveFlash ? ' Saved' : ' Save')}
             </button>
 
-            {/* Focus Mode toggle (Desktop only) */}
-            {!isMobile && (
-              <button
-                onClick={() => setFocusMode(v => !v)}
-                style={{
-                  padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
-                  cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
-                  background: focusMode ? B.amberGlow : 'transparent',
-                  color: focusMode ? B.amber : B.muted,
-                  border: focusMode ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
-                }}
-              >
-                {focusMode ? '◧ Exit Focus' : '▣ Focus'}
-              </button>
-            )}
+            {/* Copilot toggle */}
+            <button
+              onClick={() => setCopilotOpen(v => !v)}
+              title="Toggle AI Co-Pilot"
+              style={{
+                padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+                cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
+                background: copilotOpen ? B.amberGlow : 'transparent',
+                color: copilotOpen ? B.amber : B.muted,
+                border: copilotOpen ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
+              }}
+            >
+              ✨ {isMobile ? '' : 'Co-Pilot'}
+            </button>
           </div>
         )}
 
-        {/* Content */}
+        {/* Content Area + Copilot */}
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-          {section === 'consciousness' ? (
-            <ConsciousnessView
-              files={files}
-              activeFileId={activeFileId}
-              onSelectFile={handleSelectFromGraph}
-            />
-          ) : (
-            <DynamicCanvas
-              key={`${activeFile.id}-${currentPageIdx}`}
-              file={{ ...activeFile, content: pages ? (pages[currentPageIdx]?.content ?? '') : activeFile.content }}
-              onChange={(id, content) => {
-                if (pages) {
-                  const updated = pages.map((p, i) => i === currentPageIdx ? { ...p, content } : p);
-                  setPagesMap(prev => ({ ...prev, [id]: updated }));
-                } else {
-                  handleUpdateFileContent(id, content);
-                }
-              }}
-              pages={pages}
-              currentPageIdx={currentPageIdx}
-              onAddPage={() => handleAddPage(activeFile.id, activeFile.content)}
-              onSelectPage={(idx) => handleSelectPage(activeFile.id, idx)}
-              currentBgType={pages?.[currentPageIdx]?.bgType ?? 'dotted'}
-              onChangeBgType={(t) => handleChangeBgType(activeFile.id, currentPageIdx, t)}
-            />
-          )}
+          <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+            {section === 'consciousness' ? (
+              <ConsciousnessView
+                files={files}
+                activeFileId={activeFileId}
+                onSelectFile={handleSelectFromGraph}
+              />
+            ) : (
+              <DynamicCanvas
+                key={`${activeFile.id}-${currentPageIdx}`}
+                file={{ ...activeFile, content: pages ? (pages[currentPageIdx]?.content ?? '') : activeFile.content }}
+                onChange={(id, content) => {
+                  if (pages) {
+                    const updated = pages.map((p, i) => i === currentPageIdx ? { ...p, content } : p);
+                    setPagesMap(prev => ({ ...prev, [id]: updated }));
+                  } else {
+                    handleUpdateFileContent(id, content);
+                  }
+                }}
+                pages={pages}
+                currentPageIdx={currentPageIdx}
+                onAddPage={() => handleAddPage(activeFile.id, activeFile.content)}
+                onSelectPage={(idx) => handleSelectPage(activeFile.id, idx)}
+                currentBgType={pages?.[currentPageIdx]?.bgType ?? 'dotted'}
+                onChangeBgType={(t) => handleChangeBgType(activeFile.id, currentPageIdx, t)}
+              />
+            )}
+          </div>
+          
+          <AICopilot 
+            isOpen={copilotOpen} 
+            onClose={() => setCopilotOpen(false)}
+            activeFileName={activeFile.name}
+            activeFileContent={activeFile.content}
+            relatedFilesData={relatedFiles.map(r => {
+              const file = files.find(f => f.id === r.id);
+              return { name: r.name, content: file?.content || '' };
+            })}
+          />
         </div>
       </div>
 
