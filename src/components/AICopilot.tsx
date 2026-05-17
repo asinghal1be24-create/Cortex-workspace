@@ -130,7 +130,10 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
 
       {/* Input */}
       <div style={{ padding: '12px', borderTop: `1px solid ${B.border}`, background: B.surface }}>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8 }}>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit(e, { data: { contextText: buildContext() } });
+        }} style={{ display: 'flex', gap: 8 }}>
           <input
             value={input}
             onChange={handleInputChange}
@@ -141,10 +144,10 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
               outline: 'none'
             }}
           />
-          <button type="submit" disabled={isLoading || !input?.trim()} style={{
+          <button type="submit" style={{
             background: B.amber, color: '#000', border: 'none', borderRadius: 8,
-            padding: '0 14px', fontWeight: 600, cursor: isLoading ? 'not-allowed' : 'pointer',
-            opacity: (!input?.trim() || isLoading) ? 0.5 : 1
+            padding: '0 14px', fontWeight: 600, cursor: isLoading ? 'wait' : 'pointer',
+            opacity: isLoading ? 0.5 : 1
           }}>
             ↑
           </button>
