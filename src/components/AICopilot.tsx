@@ -54,7 +54,7 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || \`API Error \${res.status}\`);
+        throw new Error(errData.error || `API Error ${res.status}`);
       }
 
       const data = await res.json();
