@@ -1,5 +1,5 @@
 import { groq } from '@ai-sdk/groq';
-import { streamText } from 'ai';
+import { generateText } from 'ai';
 
 export const maxDuration = 30;
 
@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   try {
     const { messages, contextText } = await req.json();
 
-    const result = streamText({
+    const result = await generateText({
       model: groq('llama-3.3-70b-versatile'),
       system: `You are Neo, a brilliant, context-aware Socratic brainstorming partner. 
 Your goal is to help the user ideate, debug, and expand their thoughts. 
@@ -20,7 +20,7 @@ ${contextText}
       messages,
     });
 
-    return result.toDataStreamResponse();
+    return Response.json({ text: result.text });
   } catch (error: any) {
     console.error("[Cortex Chat Error]", error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });

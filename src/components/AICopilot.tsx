@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { useChat } from "@ai-sdk/react";
+import React, { useEffect, useRef, useState } from "react";
 
 interface AICopilotProps {
   isOpen: boolean;
@@ -26,16 +25,47 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
     return ctx;
   };
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
-    api: '/api/chat',
-    body: {
-      contextText: buildContext(),
-    },
-    onError: (err) => {
-      alert("Neo encountered an error: " + err.message);
+  const [messages, setMessages] = useState<{id: string, role: string, content: string}[]>([]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+
+    const userMsg = { id: Date.now().toString(), role: 'user', content: input };
+    const newMessages = [...messages, userMsg];
+    
+    setMessages(newMessages);
+    setInput("");
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: newMessages,
+          contextText: buildContext()
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || \`API Error \${res.status}\`);
+      }
+
+      const data = await res.json();
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: data.text }]);
+    } catch (err: any) {
       console.error(err);
+      setError(err);
+    } finally {
+      setIsLoading(false);
     }
-  });
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -130,13 +160,10 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
 
       {/* Input */}
       <div style={{ padding: '12px', borderTop: `1px solid ${B.border}`, background: B.surface }}>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          handleSubmit(e, { data: { contextText: buildContext() } });
-        }} style={{ display: 'flex', gap: 8 }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8 }}>
           <input
             value={input}
-            onChange={handleInputChange}
+            onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about your file..."
             style={{
               flex: 1, background: B.bg, border: `1px solid ${B.border}`,
@@ -144,10 +171,10 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
               outline: 'none'
             }}
           />
-          <button type="submit" style={{
+          <button type="submit" disabled={isLoading || !input.trim()} style={{
             background: B.amber, color: '#000', border: 'none', borderRadius: 8,
-            padding: '0 14px', fontWeight: 600, cursor: isLoading ? 'wait' : 'pointer',
-            opacity: isLoading ? 0.5 : 1
+            padding: '0 14px', fontWeight: 600, cursor: isLoading ? 'not-allowed' : 'pointer',
+            opacity: (!input.trim() || isLoading) ? 0.5 : 1
           }}>
             ↑
           </button>
