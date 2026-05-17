@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 
 interface AICopilotProps {
@@ -26,10 +26,16 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
     return ctx;
   };
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+  const [text, setText] = useState("");
+
+  const { messages, append, isLoading, error } = useChat({
     api: '/api/chat',
     body: {
       contextText: buildContext(),
+    },
+    onError: (err) => {
+      alert("Neo encountered an error: " + err.message);
+      console.error(err);
     }
   });
 
@@ -116,15 +122,25 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
         {isLoading && (
           <div style={{ fontSize: 12, color: B.amber, fontStyle: 'italic' }}>Thinking...</div>
         )}
+        {error && (
+          <div style={{ fontSize: 12, color: '#ff4d4d', background: 'rgba(255,77,77,0.1)', padding: '8px', borderRadius: '4px' }}>
+            Connection Error: {error.message || "Failed to reach Groq API."}
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
       <div style={{ padding: '12px', borderTop: `1px solid ${B.border}`, background: B.surface }}>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 8 }}>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (!text.trim() || isLoading) return;
+          append({ role: 'user', content: text });
+          setText("");
+        }} style={{ display: 'flex', gap: 8 }}>
           <input
-            value={input}
-            onChange={handleInputChange}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
             placeholder="Ask about your file..."
             style={{
               flex: 1, background: B.bg, border: `1px solid ${B.border}`,
@@ -132,10 +148,10 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
               outline: 'none'
             }}
           />
-          <button type="submit" disabled={isLoading || !input?.trim()} style={{
+          <button type="submit" disabled={isLoading || !text.trim()} style={{
             background: B.amber, color: '#000', border: 'none', borderRadius: 8,
             padding: '0 14px', fontWeight: 600, cursor: isLoading ? 'not-allowed' : 'pointer',
-            opacity: (!input?.trim() || isLoading) ? 0.5 : 1
+            opacity: (!text.trim() || isLoading) ? 0.5 : 1
           }}>
             ↑
           </button>
