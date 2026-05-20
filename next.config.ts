@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export',          // Tells Next.js to export static HTML/CSS/JS (builds into the "out" folder)
+  // Only export statically if building specifically for Capacitor
+  output: process.env.CAPACITOR === 'true' ? 'export' : undefined,
   images: {
     unoptimized: true,       // Native mobile doesn't run the Next.js server image optimizer
   },
