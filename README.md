@@ -1,10 +1,14 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Antigravity (Cortex)
 
-## Getting Started
+Antigravity (internally known as **Cortex**) is a next-generation, multi-modal cognitive workspace designed to serve as an interactive "consciousness" for your files, code bases, spreadsheets, and visual whiteboards.
 
-DIRECT LINK - cortex-workspace.vercel.app
- 
+## 🔗 Direct Live Deployment
+*   **Production URL**: [cortex-workspace.vercel.app](https://cortex-workspace.vercel.app)
+
+---
+
+## 🚀 Getting Started
+
 First, run the development server:
 
 ```bash
@@ -18,25 +22,13 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The page will auto-update as you edit files in `src/app/`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📊 Project Documentation
 
-## Learn More
+For a comprehensive review of the project architecture, underlying technology stack, and all the latest features (including **NEO Socratic Copilot**, custom **Monaco MATLAB integrations**, and **Groq Llama 3.3 70B** routing), please see:
 
-To learn more about Next.js, take a look at the following resources:
+👉 **[Project Report (project_report.md)](./project_report.md)**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
-# Cortex-workspace
->>>>>>> 1e37314f50cf19017a859ae2d73c1b057d841b72
