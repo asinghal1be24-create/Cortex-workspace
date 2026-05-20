@@ -6,6 +6,7 @@ import DynamicCanvas, { getFileType } from "@/components/DynamicCanvas";
 import ConsciousnessView from "@/components/ConsciousnessView";
 import AICopilot from "@/components/AICopilot";
 import { getRelatedFiles } from "@/lib/similarity";
+import { exportToZip, syncToLocalDirectory } from "@/lib/exporter";
 
 // ── localStorage helpers ───────────────────────────────────────────────────────
 
@@ -44,6 +45,100 @@ export default function Home() {
   const [focusMode, setFocusMode]       = useState(false);
   const [saveFlash, setSaveFlash]       = useState(false);
   const [bridgeResolver, setBridgeResolver] = useState<{ filename: string, amount: string, category: string } | null>(null);
+  const [showSyncDropdown, setShowSyncDropdown] = useState(false);
+
+
+  // ── Portability Hub States & Handlers ──
+  const [isExporting, setIsExporting] = useState(false);
+  const [isSyncing, setIsSyncing]     = useState(false);
+  const [localDirHandle, setLocalDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
+  const [syncTime, setSyncTime]       = useState<string | null>(null);
+  const [syncStatus, setSyncStatus]   = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleExportZip = async () => {
+    try {
+      setIsExporting(true);
+      const blob = await exportToZip(files, pagesMap);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Cortex_Workspace_${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("ZIP Export failed:", err);
+      alert("ZIP Export failed. Check developer console.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleMountDirectory = async () => {
+    try {
+      if (typeof window === "undefined" || !('showDirectoryPicker' in window)) {
+        alert("Your browser does not support local directory mounting. Try Chrome, Edge, or Opera.");
+        return;
+      }
+      const handle = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+      setLocalDirHandle(handle);
+      
+      setIsSyncing(true);
+      await syncToLocalDirectory(handle, files, pagesMap);
+      setSyncTime(new Date().toLocaleTimeString());
+      setSyncStatus('success');
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        console.error("Failed to mount directory:", err);
+        alert(`Mount failed: ${err.message}`);
+        setSyncStatus('error');
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleSyncManual = async () => {
+    if (!localDirHandle) return;
+    try {
+      setIsSyncing(true);
+      await syncToLocalDirectory(localDirHandle, files, pagesMap);
+      setSyncTime(new Date().toLocaleTimeString());
+      setSyncStatus('success');
+    } catch (err: any) {
+      console.error("Manual sync failed:", err);
+      alert(`Sync failed: ${err.message}`);
+      setSyncStatus('error');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleUnmountDirectory = () => {
+    setLocalDirHandle(null);
+    setSyncTime(null);
+    setSyncStatus('idle');
+  };
+
+  // Real-time automatic background directory sync (debounced)
+  useEffect(() => {
+    if (!localDirHandle) return;
+    
+    const timer = setTimeout(async () => {
+      try {
+        await syncToLocalDirectory(localDirHandle, files, pagesMap);
+        setSyncTime(new Date().toLocaleTimeString());
+        setSyncStatus('success');
+      } catch (err) {
+        console.error("Background sync failed:", err);
+        setSyncStatus('error');
+      }
+    }, 1200);
+    
+    return () => clearTimeout(timer);
+  }, [files, pagesMap, localDirHandle]);
+
 
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -148,9 +243,40 @@ export default function Home() {
 
   const activeFile = files.find(f => f.id === activeFileId) || files[0];
 
+  const getFileContentForAI = (file: WorkspaceFile) => {
+    if (!file) return "";
+    const type = getFileType(file.name);
+    const pages = pagesMap[file.id];
+    if (pages && pages.length > 0) {
+      if (type === 'text') {
+        return pages.map((p, idx) => `[PAGE ${idx + 1}]\n${p.content}`).join("\n\n");
+      }
+      if (type === 'whiteboard') {
+        return `[Whiteboard file containing ${pages.length} pages of drawing strokes]`;
+      }
+    }
+    return file.content;
+  };
+
+  const resolvedFilesForAI = useMemo(() => {
+    return files.map(f => {
+      const type = getFileType(f.name);
+      const pages = pagesMap[f.id];
+      if (pages && pages.length > 0) {
+        if (type === 'text') {
+          return { ...f, content: pages.map((p, idx) => `[PAGE ${idx + 1}]\n${p.content}`).join("\n\n") };
+        }
+        if (type === 'whiteboard') {
+          return { ...f, content: `[Whiteboard file containing ${pages.length} pages of drawing strokes]` };
+        }
+      }
+      return f;
+    });
+  }, [files, pagesMap]);
+
   const relatedFiles = useMemo(() =>
-    getRelatedFiles(activeFileId, files, getFileType, 4),
-    [activeFileId, files]
+    getRelatedFiles(activeFileId, resolvedFilesForAI, getFileType, 4),
+    [activeFileId, resolvedFilesForAI]
   );
 
   const handleSave = () => {
@@ -311,6 +437,8 @@ export default function Home() {
           </div>
         </div>
 
+
+
         {/* Files list */}
         {section === 'files' && (
           <div style={{ flex: 1, overflowY: 'auto', padding: '12px 8px' }}>
@@ -413,6 +541,8 @@ export default function Home() {
           </div>
         )}
 
+
+
         {/* New file button */}
         <div style={{ padding: '12px', borderTop: `1px solid ${B.border}` }}>
           <button onClick={handleCreateFile} style={{
@@ -428,79 +558,235 @@ export default function Home() {
 
       {/* ── MAIN AREA ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-        {section === 'files' && (
-          <div style={{
-            height: isMobile ? 64 : 56, borderBottom: `1px solid ${B.border}`, display: 'flex',
-            alignItems: 'center', padding: isMobile ? '0 12px' : '0 20px', gap: isMobile ? 8 : 16, flexShrink: 0, background: B.sidebar
-          }}>
-            {isMobile && (
-              <button 
-                onClick={() => setMobileMenuOpen(true)}
+        <div style={{
+          height: isMobile ? 64 : 56, borderBottom: `1px solid ${B.border}`, display: 'flex',
+          alignItems: 'center', padding: isMobile ? '0 12px' : '0 20px', gap: isMobile ? 8 : 16, flexShrink: 0, background: B.sidebar
+        }}>
+          {isMobile && (
+            <button 
+              onClick={() => setMobileMenuOpen(true)}
+              style={{
+                background: 'none', border: 'none', color: B.text, fontSize: 20, cursor: 'pointer',
+                padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}
+            >
+              ☰
+            </button>
+          )}
+          
+          {section === 'files' ? (
+            <>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10 }}>
+                {!isMobile && <span style={{ color: B.muted, fontSize: 13 }}>{getFileIcon(activeFile.name)}</span>}
+                <input
+                  value={activeFile.name}
+                  onChange={(e) => handleUpdateFileName(activeFile.id, e.target.value)}
+                  className="bg-transparent border-none outline-none font-medium text-sm"
+                  style={{ color: B.text, width: isMobile ? '120px' : '200px' }}
+                  placeholder="Filename..."
+                />
+                {!isMobile && (
+                  <span style={{
+                    fontSize: 11, color: B.muted, background: B.surface,
+                    padding: '2px 8px', borderRadius: 12, border: `1px solid ${B.border}`
+                  }}>
+                    {getFileType(activeFile.name)}
+                  </span>
+                )}
+              </div>
+
+              {/* ── Save button ── */}
+              <button
+                onClick={handleSave}
                 style={{
-                  background: 'none', border: 'none', color: B.text, fontSize: 20, cursor: 'pointer',
-                  padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  padding: isMobile ? '6px 10px' : '4px 12px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+                  cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
+                  background: saveFlash ? 'rgba(77,186,132,0.12)' : B.amberGlow,
+                  color: saveFlash ? '#4dba84' : B.amber,
+                  border: saveFlash ? '1px solid rgba(77,186,132,0.3)' : `1px solid ${B.amberBorder}`,
                 }}
               >
-                ☰
+                {saveFlash ? '✓' : '⬇'}{!isMobile && (saveFlash ? ' Saved' : ' Save')}
               </button>
-            )}
-            
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 10 }}>
-              {!isMobile && <span style={{ color: B.muted, fontSize: 13 }}>{getFileIcon(activeFile.name)}</span>}
-              <input
-                value={activeFile.name}
-                onChange={(e) => handleUpdateFileName(activeFile.id, e.target.value)}
-                className="bg-transparent border-none outline-none font-medium text-sm"
-                style={{ color: B.text, width: isMobile ? '120px' : '200px' }}
-                placeholder="Filename..."
-              />
-              {!isMobile && (
-                <span style={{
-                  fontSize: 11, color: B.muted, background: B.surface,
-                  padding: '2px 8px', borderRadius: 12, border: `1px solid ${B.border}`
-                }}>
-                  {getFileType(activeFile.name)}
-                </span>
-              )}
+
+              {/* ── Sync / Portability Button & Dropdown ── */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowSyncDropdown(v => !v)}
+                  style={{
+                    padding: isMobile ? '6px 10px' : '4px 12px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+                    cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
+                    background: localDirHandle ? 'rgba(77, 186, 132, 0.12)' : showSyncDropdown ? B.amberGlow : 'transparent',
+                    color: localDirHandle ? '#4dba84' : showSyncDropdown ? B.amber : B.muted,
+                    border: localDirHandle ? '1px solid rgba(77, 186, 132, 0.3)' : showSyncDropdown ? `1px solid ${B.amberBorder}` : '1px solid transparent',
+                  }}
+                >
+                  <span>⇱</span>
+                  <span>{!isMobile && (localDirHandle ? 'Synced' : 'Sync')}</span>
+                </button>
+
+                {showSyncDropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 30,
+                    right: 0,
+                    width: 250,
+                    background: 'rgba(11, 11, 22, 0.95)',
+                    backdropFilter: 'blur(10px)',
+                    border: `1px solid ${B.border}`,
+                    borderRadius: 10,
+                    padding: 12,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                    zIndex: 100,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10
+                  }}>
+                    <div style={{ fontSize: 10, color: B.muted, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', borderBottom: `1px solid ${B.border}`, paddingBottom: 6 }}>
+                      Portability & Sync Hub
+                    </div>
+
+                    {/* ZIP Exporter */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: B.text }}>📦 Archive Backup</div>
+                      <div style={{ fontSize: 9, color: B.muted, lineHeight: 1.3 }}>Export your workspace as standard Markdown and vector SVGs in a ZIP.</div>
+                      <button
+                        onClick={() => { handleExportZip(); setShowSyncDropdown(false); }}
+                        disabled={isExporting}
+                        style={{
+                          marginTop: 4,
+                          padding: '6px 8px',
+                          borderRadius: 5,
+                          fontSize: 10,
+                          fontWeight: 600,
+                          background: B.amberGlow,
+                          color: B.amber,
+                          border: `1px solid ${B.amberBorder}`,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                          textAlign: 'center',
+                          width: '100%'
+                        }}
+                      >
+                        {isExporting ? 'Compiling...' : 'Download ZIP'}
+                      </button>
+                    </div>
+
+                    {/* Local Directory Sync */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, borderTop: `1px solid ${B.border}`, paddingTop: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: B.text }}>💻 Local Directory Sync</div>
+                      <div style={{ fontSize: 9, color: B.muted, lineHeight: 1.3 }}>Mount a local folder to auto-sync edits to your computer recursively in real-time.</div>
+                      
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        padding: '4px 6px',
+                        borderRadius: 4,
+                        background: B.surface,
+                        border: `1px solid ${B.border}`,
+                        fontSize: 9,
+                        marginTop: 2
+                      }}>
+                        <span style={{
+                          width: 5,
+                          height: 5,
+                          borderRadius: '50%',
+                          background: localDirHandle ? '#4dba84' : '#faad14',
+                          boxShadow: localDirHandle ? '0 0 5px #4dba84' : 'none'
+                        }} />
+                        <span style={{ color: localDirHandle ? B.text : B.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                          {localDirHandle ? `Syncing to: ${localDirHandle.name}` : 'Disconnected'}
+                        </span>
+                      </div>
+
+                      {localDirHandle ? (
+                        <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                          <button
+                            onClick={() => { handleSyncManual(); }}
+                            disabled={isSyncing}
+                            style={{
+                              flex: 1,
+                              padding: '5px',
+                              borderRadius: 5,
+                              fontSize: 9,
+                              fontWeight: 600,
+                              background: 'rgba(77,186,132,0.1)',
+                              color: '#4dba84',
+                              border: '1px solid rgba(77,186,132,0.3)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {isSyncing ? 'Syncing...' : 'Sync Now'}
+                          </button>
+                          <button
+                            onClick={() => { handleUnmountDirectory(); }}
+                            style={{
+                              padding: '5px 8px',
+                              borderRadius: 5,
+                              fontSize: 9,
+                              fontWeight: 600,
+                              background: 'transparent',
+                              color: 'rgba(250,100,100,0.8)',
+                              border: '1px solid rgba(250,100,100,0.3)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Disconnect
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { handleMountDirectory(); setShowSyncDropdown(false); }}
+                          style={{
+                            marginTop: 4,
+                            padding: '6px 8px',
+                            borderRadius: 5,
+                            fontSize: 10,
+                            fontWeight: 600,
+                            background: B.elevated,
+                            color: B.text,
+                            border: `1px solid ${B.border}`,
+                            cursor: 'pointer',
+                            width: '100%'
+                          }}
+                        >
+                          Mount Local Folder
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: B.amber, letterSpacing: 0.5 }}>◎ CONSCIOUSNESS GRAPH</span>
             </div>
+          )}
 
-            {/* ── Save button ── */}
-            <button
-              onClick={handleSave}
-              style={{
-                padding: isMobile ? '6px 10px' : '4px 12px', borderRadius: 7, fontSize: 11, fontWeight: 500,
-                cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
-                background: saveFlash ? 'rgba(77,186,132,0.12)' : B.amberGlow,
-                color: saveFlash ? '#4dba84' : B.amber,
-                border: saveFlash ? '1px solid rgba(77,186,132,0.3)' : `1px solid ${B.amberBorder}`,
-              }}
-            >
-              {saveFlash ? '✓' : '⬇'}{!isMobile && (saveFlash ? ' Saved' : ' Save')}
-            </button>
-
-            {/* Copilot toggle */}
-            <button
-              onClick={() => setCopilotOpen(v => !v)}
-              title="Toggle Neo"
-              style={{
-                padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
-                cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
-                background: copilotOpen ? B.amberGlow : 'transparent',
-                color: copilotOpen ? B.amber : B.muted,
-                border: copilotOpen ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
-              }}
-            >
-              NEO
-            </button>
-          </div>
-        )}
+          {/* Copilot toggle */}
+          <button
+            onClick={() => setCopilotOpen(v => !v)}
+            title="Toggle Neo"
+            style={{
+              padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+              cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
+              background: copilotOpen ? B.amberGlow : 'transparent',
+              color: copilotOpen ? B.amber : B.muted,
+              border: copilotOpen ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
+            }}
+          >
+            NEO
+          </button>
+        </div>
 
         {/* Content Area + Copilot */}
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
           <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
             {section === 'consciousness' ? (
               <ConsciousnessView
-                files={files}
+                files={resolvedFilesForAI}
                 activeFileId={activeFileId}
                 onSelectFile={handleSelectFromGraph}
               />
@@ -530,10 +816,10 @@ export default function Home() {
             isOpen={copilotOpen} 
             onClose={() => setCopilotOpen(false)}
             activeFileName={activeFile.name}
-            activeFileContent={activeFile.content}
+            activeFileContent={getFileContentForAI(activeFile)}
             relatedFilesData={relatedFiles.map(r => {
-              const file = files.find(f => f.id === r.id);
-              return { name: r.name, content: file?.content || '' };
+              const file = resolvedFilesForAI.find(f => f.id === r.id);
+              return { name: r.name, content: file ? getFileContentForAI(file) : '' };
             })}
           />
         </div>

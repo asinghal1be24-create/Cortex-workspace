@@ -92,7 +92,10 @@ function DataSparkComponent(props: any) {
           }
         } catch {}
 
-        const res = await fetch('/api/bridge', {
+        const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
+        const apiBase = isCapacitor ? 'https://cortex-workspace.vercel.app' : '';
+
+        const res = await fetch(`${apiBase}/api/bridge`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: rawText, availableLedgers })

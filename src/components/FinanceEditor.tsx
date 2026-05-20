@@ -66,7 +66,7 @@ export default function FinanceEditor({
   const COLORS = ['#6199f5', '#4dba84', '#f09532', '#9b7ff0', '#e07272', '#dddaeb'];
 
   return (
-    <div className="flex-1 flex flex-col md:flex-row gap-8 p-8 bg-[var(--color-cortex-bg)] overflow-y-auto">
+    <div className="flex-1 flex flex-col md:flex-row gap-8 p-4 md:p-8 bg-[var(--color-cortex-bg)] overflow-y-auto">
       {/* Spreadsheet Side */}
       <div className="flex-1 border border-[var(--color-cortex-border)] rounded-lg bg-[var(--color-cortex-surface)] overflow-hidden flex flex-col">
         <div className="p-4 border-b border-[var(--color-cortex-border)] flex justify-between items-center bg-[var(--color-cortex-elevated)]">

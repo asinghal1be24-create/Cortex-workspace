@@ -561,8 +561,16 @@ export default function WhiteboardEditor({
   return (
     <div className="flex-1 flex flex-col bg-[#080810]" style={{ overflow: 'hidden' }}>
       {/* Toolbar */}
-      <div className="h-14 border-b border-[var(--color-cortex-border)] bg-[var(--color-cortex-sidebar)] flex items-center px-4 gap-6 shrink-0">
-        <div className="flex gap-2">
+      <div 
+        className="h-14 border-b border-[var(--color-cortex-border)] bg-[var(--color-cortex-sidebar)] flex items-center px-4 gap-6 shrink-0 overflow-x-auto whitespace-nowrap"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {/* Style tag to hide WebKit scrollbars */}
+        <style>{`
+          .h-14::-webkit-scrollbar { display: none; }
+        `}</style>
+
+        <div className="flex gap-2 shrink-0">
           <button 
             onClick={() => setTool("pen")}
             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${tool === "pen" ? 'bg-[var(--color-cortex-amberGlow)] text-[var(--color-cortex-amber)] border border-[var(--color-cortex-amberBorder)]' : 'text-[var(--color-cortex-muted)] hover:text-[var(--color-cortex-text)]'}`}
@@ -578,9 +586,9 @@ export default function WhiteboardEditor({
           </button>
         </div>
 
-        <div className="w-px h-6 bg-[var(--color-cortex-border)]" />
+        <div className="w-px h-6 bg-[var(--color-cortex-border)] shrink-0" />
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <span className="text-xs text-[var(--color-cortex-muted)] uppercase tracking-wide">Color</span>
           <input 
             type="color" 
@@ -592,9 +600,9 @@ export default function WhiteboardEditor({
           />
         </div>
 
-        <div className="w-px h-6 bg-[var(--color-cortex-border)]" />
+        <div className="w-px h-6 bg-[var(--color-cortex-border)] shrink-0" />
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <span className="text-xs text-[var(--color-cortex-muted)] uppercase tracking-wide mr-2">Paper</span>
           {(["dotted", "lined", "plain", "white"] as const).map(type => (
             <button
@@ -607,10 +615,10 @@ export default function WhiteboardEditor({
           ))}
         </div>
 
-        <div className="w-px h-6 bg-[var(--color-cortex-border)]" />
+        <div className="w-px h-6 bg-[var(--color-cortex-border)] shrink-0" />
 
         {/* ── Pin / Pointer / Cells ── */}
-        <div className="flex gap-1 items-center">
+        <div className="flex gap-1 items-center shrink-0">
           {/* Pin — image (paperclip icon) */}
           <button
             onClick={() => imgPinRef.current?.click()}
@@ -650,11 +658,11 @@ export default function WhiteboardEditor({
           </button>
         </div>
 
-        <div className="flex-1" />
+        <div className="flex-grow shrink" />
         
         <button 
           onClick={() => saveStrokes([])}
-          className="text-xs text-[var(--color-cortex-muted)] hover:text-[var(--color-cortex-red)] transition-colors px-3 py-1 border border-transparent hover:border-[var(--color-cortex-border)] rounded"
+          className="text-xs text-[var(--color-cortex-muted)] hover:text-[var(--color-cortex-red)] transition-colors px-3 py-1 border border-transparent hover:border-[var(--color-cortex-border)] rounded shrink-0"
         >
           Clear Board
         </button>

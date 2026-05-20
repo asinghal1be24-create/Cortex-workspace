@@ -42,8 +42,11 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
     setIsLoading(true);
     setError(null);
 
+    const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
+    const apiBase = isCapacitor ? 'https://cortex-workspace.vercel.app' : '';
+
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch(`${apiBase}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,6 +1,17 @@
 import { groq } from '@ai-sdk/groq';
 import { generateText } from 'ai';
 
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 export async function POST(req: Request) {
   try {
     const { text, availableLedgers } = await req.json();
@@ -37,9 +48,25 @@ Parse this log entry: "${text}"`,
     }
 
     const payload = JSON.parse(jsonString);
-    return Response.json(payload);
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      }
+    });
   } catch (error: any) {
     console.error("[Cortex AI Bridge Error]", error);
-    return Response.json({ error: error.message || "Failed to parse bridge command." }, { status: 500 });
+    return new Response(JSON.stringify({ error: error.message || "Failed to parse bridge command." }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      }
+    });
   }
 }
