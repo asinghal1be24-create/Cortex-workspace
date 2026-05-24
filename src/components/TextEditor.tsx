@@ -241,6 +241,243 @@ const DataSparkNode = Node.create({
   },
 });
 
+// ── Temporal Reminder Extension (Chronos Pills) ──────────────────────────────
+
+function TemporalReminderComponent(props: any) {
+  const { node, updateAttributes, editor } = props;
+  const { rawText, status, task, dateTime, formattedDate, id } = node.attrs;
+
+  useEffect(() => {
+    let isMounted = true;
+    if (status !== 'pending') return;
+
+    async function parseReminder() {
+      try {
+        const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
+        const apiBase = isCapacitor ? 'https://cortex-workspace.vercel.app' : '';
+
+        // Fetch voice-intent parser
+        const res = await fetch(`${apiBase}/api/voice-intent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: rawText,
+            currentTime: new Date().toString(),
+            availableLedgers: []
+          })
+        });
+
+        const data = await res.json();
+        if (!isMounted) return;
+
+        if (!res.ok || data.error) {
+          throw new Error(data.error || "Failed parsing");
+        }
+
+        if (data.intent === 'schedule_reminder' && data.isTemporalEvent) {
+          const uniqueId = 'rem_' + Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+          updateAttributes({
+            status: 'active',
+            task: data.task,
+            dateTime: data.dateTime,
+            formattedDate: data.formattedDate,
+            id: uniqueId
+          });
+
+          // Dispatch to global page scheduler to register the alarm
+          const event = new CustomEvent('cortex-reminder-created', {
+            detail: {
+              id: uniqueId,
+              task: data.task,
+              dateTime: data.dateTime,
+              formattedDate: data.formattedDate,
+              rawText: rawText
+            }
+          });
+          window.dispatchEvent(event);
+        } else if (data.intent === 'log_expense' && data.isLogEvent) {
+          // Smart redirection: if voice was actually an expense log, trigger data bridge!
+          updateAttributes({ status: 'ignored' });
+          const event = new CustomEvent('cortex-bridge', {
+            detail: { filename: data.filename, amount: data.amount, category: data.category }
+          });
+          window.dispatchEvent(event);
+        } else {
+          // If general text, mark as ignored so Tiptap renders the text normally
+          updateAttributes({ status: 'ignored' });
+        }
+      } catch (error) {
+        console.error("TemporalReminder AI Error:", error);
+        if (isMounted) {
+          updateAttributes({ status: 'error' });
+        }
+      }
+    }
+
+    parseReminder();
+    return () => { isMounted = false; };
+  }, [status, rawText, updateAttributes]);
+
+  // Handle triggered/expired status checks dynamically
+  useEffect(() => {
+    if (status !== 'active') return;
+
+    // Listen for local notifications/alarms trigger events to update the pill state
+    const handleTriggered = (e: any) => {
+      if (e.detail.id === id) {
+        updateAttributes({ status: 'triggered' });
+      }
+    };
+    const handleExpired = (e: any) => {
+      if (e.detail.id === id) {
+        updateAttributes({ status: 'expired' });
+      }
+    };
+
+    window.addEventListener('cortex-reminder-triggered', handleTriggered);
+    window.addEventListener('cortex-reminder-expired', handleExpired);
+    return () => {
+      window.removeEventListener('cortex-reminder-triggered', handleTriggered);
+      window.removeEventListener('cortex-reminder-expired', handleExpired);
+    };
+  }, [status, id, updateAttributes]);
+
+  if (status === 'ignored') {
+    return <NodeViewWrapper as="span" style={{ color: 'var(--color-cortex-text)' }}>{rawText}</NodeViewWrapper>;
+  }
+
+  const isThinking = status === 'pending';
+  const isError = status === 'error';
+  const isActive = status === 'active';
+  const isTriggered = status === 'triggered';
+  const isExpired = status === 'expired';
+
+  // Aesthetic styling matching the theme
+  let pillBg = 'rgba(255, 255, 255, 0.05)';
+  let pillBorder = '1px solid var(--color-cortex-border)';
+  let pillColor = 'var(--color-cortex-muted)';
+  let glowStyle = {};
+
+  if (isThinking) {
+    pillBg = 'rgba(255,255,255,0.03)';
+    pillColor = 'var(--color-cortex-muted)';
+    glowStyle = { animation: 'cortex-pulse 1.5s ease-in-out infinite' };
+  } else if (isError) {
+    pillBg = 'rgba(224, 114, 114, 0.1)';
+    pillBorder = '1px solid rgba(224, 114, 114, 0.3)';
+    pillColor = '#e07272';
+  } else if (isActive) {
+    pillBg = 'var(--color-cortex-amberGlow)';
+    pillBorder = '1px solid var(--color-cortex-amberBorder)';
+    pillColor = 'var(--color-cortex-amber)';
+    glowStyle = { boxShadow: '0 0 8px var(--color-cortex-amberBorder)', animation: 'cortex-pulse 2s ease-in-out infinite' };
+  } else if (isTriggered) {
+    pillBg = 'rgba(0, 240, 255, 0.15)';
+    pillBorder = '1px solid rgba(0, 240, 255, 0.4)';
+    pillColor = '#00f0ff';
+    glowStyle = { boxShadow: '0 0 12px rgba(0, 240, 255, 0.5)', animation: 'cortex-pulse 1s ease-in-out infinite' };
+  } else if (isExpired) {
+    pillBg = 'rgba(255, 255, 255, 0.04)';
+    pillBorder = '1px solid rgba(255, 255, 255, 0.08)';
+    pillColor = 'rgba(255, 255, 255, 0.3)';
+    glowStyle = { textDecoration: 'line-through' };
+  }
+
+  return (
+    <NodeViewWrapper as="span" style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 4px' }}>
+      <span
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 500,
+          background: pillBg, border: pillBorder, color: pillColor,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          userSelect: 'none', cursor: 'pointer', ...glowStyle
+        }}
+        onClick={() => {
+          if (isActive) {
+            alert(`Reminder: "${task}" is set for ${formattedDate}`);
+          }
+        }}
+      >
+        <span style={{ fontSize: 10 }}>⏰</span>
+        <span>
+          {isThinking ? `Scheduling: "${rawText}"...` :
+           isError ? `Error: "${rawText}"` :
+           `[${task}] @${formattedDate}`}
+        </span>
+      </span>
+    </NodeViewWrapper>
+  );
+}
+
+const TemporalReminderNode = Node.create({
+  name: 'temporalReminder',
+  group: 'inline',
+  inline: true,
+  atom: true,
+
+  addAttributes() {
+    return {
+      rawText: { default: '' },
+      status: { default: 'pending' }, // 'pending' | 'active' | 'triggered' | 'expired' | 'error' | 'ignored'
+      task: { default: '' },
+      dateTime: { default: '' },
+      formattedDate: { default: '' },
+      id: { default: '' },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'span[data-type="temporal-reminder"]' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(HTMLAttributes, { 'data-type': 'temporal-reminder' })];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(TemporalReminderComponent);
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      Enter: () => {
+        const { state } = this.editor;
+        const { $from, empty } = state.selection;
+        if (!empty) return false;
+
+        const text = $from.parent.textContent;
+        const match = text.match(/^\/remind\s+(.+)$/i);
+
+        if (match) {
+          const rawText = match[1].trim();
+          
+          this.editor.chain()
+            .deleteRange({ from: $from.start(), to: $from.end() })
+            .insertContent({ type: this.name, attrs: { rawText } })
+            .run();
+            
+          return false;
+        }
+        return false;
+      },
+    };
+  },
+
+  addInputRules() {
+    return [
+      new InputRule({
+        find: /@remind\(([^)]+)\)/,
+        handler: ({ state, range, match }) => {
+          const [_, rawText] = match;
+          state.tr.replaceWith(range.from, range.to, this.type.create({ rawText: rawText.trim() }));
+        },
+      }),
+    ];
+  },
+});
+
+
 // ── PageStrip ────────────────────────────────────────────────────────────────
 function PageStrip({ pages, currentIdx, onSelect, onAdd }: {
   pages: Page[]; currentIdx: number;
@@ -602,6 +839,7 @@ export default function TextEditor({
       TableHeader,
       TableCell,
       DataSparkNode,
+      TemporalReminderNode,
     ],
     content,
     immediatelyRender: false,
@@ -675,14 +913,91 @@ export default function TextEditor({
 
     setIsListening(true);
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = async (event: any) => {
       const transcript = event.results[0][0].transcript;
       if (transcript) {
-        // Automatically insert the AI Spark dot with the transcribed text
-        editor?.chain().focus().insertContent({
-          type: 'dataSpark',
-          attrs: { rawText: transcript }
-        }).run();
+        try {
+          let availableLedgers: string[] = [];
+          try {
+            const stored = localStorage.getItem('cortex_workspace_files');
+            if (stored) {
+              const files = JSON.parse(stored);
+              availableLedgers = files
+                .filter((f: any) => f.name.toLowerCase().endsWith('.csv'))
+                .map((f: any) => f.name.replace(/\.csv$/i, ''));
+            }
+          } catch {}
+
+          const isCapacitor = typeof window !== 'undefined' && !!(window as any).Capacitor;
+          const apiBase = isCapacitor ? 'https://cortex-workspace.vercel.app' : '';
+
+          // Fetch voice intent
+          const res = await fetch(`${apiBase}/api/voice-intent`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: transcript,
+              currentTime: new Date().toString(),
+              availableLedgers
+            })
+          });
+
+          const data = await res.json();
+          if (res.ok && !data.error) {
+            if (data.intent === 'schedule_reminder' && data.isTemporalEvent) {
+              const uniqueId = 'rem_' + Date.now().toString() + '_' + Math.random().toString(36).substr(2, 5);
+              editor?.chain().focus().insertContent({
+                type: 'temporalReminder',
+                attrs: {
+                  rawText: transcript,
+                  status: 'active',
+                  task: data.task,
+                  dateTime: data.dateTime,
+                  formattedDate: data.formattedDate,
+                  id: uniqueId
+                }
+              }).run();
+
+              // Register the alarm globally
+              const registerEvent = new CustomEvent('cortex-reminder-created', {
+                detail: {
+                  id: uniqueId,
+                  task: data.task,
+                  dateTime: data.dateTime,
+                  formattedDate: data.formattedDate,
+                  rawText: transcript
+                }
+              });
+              window.dispatchEvent(registerEvent);
+            } else if (data.intent === 'log_expense' && data.isLogEvent) {
+              editor?.chain().focus().insertContent({
+                type: 'dataSpark',
+                attrs: {
+                  rawText: transcript,
+                  status: 'success',
+                  filename: data.filename,
+                  amount: data.amount,
+                  category: data.category
+                }
+              }).run();
+
+              // Trigger ledger
+              const bridgeEvent = new CustomEvent('cortex-bridge', {
+                detail: { filename: data.filename, amount: data.amount, category: data.category }
+              });
+              window.dispatchEvent(bridgeEvent);
+            } else {
+              // General text
+              editor?.chain().focus().insertContent(data.text + ' ').run();
+            }
+          } else {
+            // Fallback: insert raw transcript if API failed
+            editor?.chain().focus().insertContent(transcript + ' ').run();
+          }
+        } catch (err) {
+          console.error("Mic processing error:", err);
+          editor?.chain().focus().insertContent(transcript + ' ').run();
+        }
       }
       setIsListening(false);
     };
@@ -710,6 +1025,10 @@ export default function TextEditor({
         .cortex-editor td, .cortex-editor th { border: 1.5px solid #c8b89a; padding: 6px 10px; min-width: 60px; }
         .cortex-editor th { background: rgba(200,184,154,0.12); font-weight: 600; color: #d0cde8; }
         .cortex-editor td { color: #b8b5cc; }
+        @keyframes cortex-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(0.98); }
+        }
       `}</style>
 
       {/* ── Toolbar ── */}

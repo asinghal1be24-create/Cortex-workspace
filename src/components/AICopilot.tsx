@@ -8,12 +8,24 @@ interface AICopilotProps {
   activeFileName: string;
   activeFileContent: string;
   relatedFilesData: { name: string; content: string }[];
+  reminders?: { id: string; task: string; dateTime: string; formattedDate: string; fileName: string; triggered: boolean; completed: boolean; }[];
 }
 
-export default function AICopilot({ isOpen, onClose, activeFileName, activeFileContent, relatedFilesData }: AICopilotProps) {
+export default function AICopilot({ isOpen, onClose, activeFileName, activeFileContent, relatedFilesData, reminders }: AICopilotProps) {
   // Build the context string safely
   const buildContext = () => {
     let ctx = `[ACTIVE FILE: ${activeFileName}]\n${activeFileContent}\n\n`;
+    
+    // Add Reminders & Scheduled events context
+    if (reminders && reminders.length > 0) {
+      ctx += `[SCHEDULED REMINDERS & ALARMS]\n`;
+      reminders.forEach(rem => {
+        const status = rem.completed ? 'COMPLETED' : rem.triggered ? 'TRIGGERED/DUE NOW' : 'ACTIVE';
+        ctx += `- [${status}] Task: "${rem.task}" | Set for: ${rem.formattedDate} | In file: ${rem.fileName}\n`;
+      });
+      ctx += `\n`;
+    }
+
     if (relatedFilesData.length > 0) {
       ctx += `[RELATED FILES FOR CONTEXT]\n`;
       relatedFilesData.forEach(f => {
