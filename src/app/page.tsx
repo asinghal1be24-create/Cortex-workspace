@@ -47,6 +47,21 @@ export default function Home() {
   const [bridgeResolver, setBridgeResolver] = useState<{ filename: string, amount: string, category: string } | null>(null);
   const [showSyncDropdown, setShowSyncDropdown] = useState(false);
 
+  // ── Reminders & Alarm Scheduler States ──
+  type Reminder = {
+    id: string;
+    task: string;
+    dateTime: string;
+    formattedDate: string;
+    rawText: string;
+    fileId: string;
+    fileName: string;
+    triggered: boolean;
+    completed: boolean;
+  };
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [activeAlert, setActiveAlert] = useState<Reminder | null>(null);
+
 
   // ── Portability Hub States & Handlers ──
   const [isExporting, setIsExporting] = useState(false);
@@ -172,6 +187,173 @@ export default function Home() {
     } catch {}
     hasLoaded.current = true;
   }, []);
+
+  // Request notifications permission on start
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  // Hydrate reminders from localStorage
+  useEffect(() => {
+    try {
+      const rawReminders = localStorage.getItem("cortex_reminders");
+      if (rawReminders) {
+        setReminders(JSON.parse(rawReminders) as Reminder[]);
+      }
+    } catch {}
+  }, []);
+
+  // Audio synthesizer chime using pure Web Audio API (highly cybernetic and local)
+  const playChime = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const now = ctx.currentTime;
+      
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(880, now); // A5
+      osc1.frequency.exponentialRampToValueAtTime(1760, now + 0.15); // A6
+      osc1.frequency.exponentialRampToValueAtTime(1320, now + 0.4); // E6
+      
+      gain1.gain.setValueAtTime(0, now);
+      gain1.gain.linearRampToValueAtTime(0.25, now + 0.05);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(440, now); // A4
+      osc2.frequency.linearRampToValueAtTime(660, now + 0.2); // E5
+      
+      gain2.gain.setValueAtTime(0, now);
+      gain2.gain.linearRampToValueAtTime(0.1, now + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.85);
+      osc2.stop(now + 0.65);
+    } catch (e) {}
+  };
+
+  // Listen for created reminders
+  useEffect(() => {
+    const handleReminderCreated = (e: CustomEvent) => {
+      const { id, task, dateTime, formattedDate, rawText } = e.detail;
+      const file = filesRef.current.find(f => f.id === activeFileId);
+      const fileName = file ? file.name : "Untitled.txt";
+
+      const newReminder: Reminder = {
+        id,
+        task,
+        dateTime,
+        formattedDate,
+        rawText,
+        fileId: activeFileId,
+        fileName: fileName,
+        triggered: false,
+        completed: false,
+      };
+
+      setReminders(prev => {
+        const updated = [...prev.filter(r => r.id !== id), newReminder];
+        localStorage.setItem("cortex_reminders", JSON.stringify(updated));
+        return updated;
+      });
+    };
+
+    window.addEventListener('cortex-reminder-created', handleReminderCreated as EventListener);
+    return () => window.removeEventListener('cortex-reminder-created', handleReminderCreated as EventListener);
+  }, [activeFileId]);
+
+  // Alarms check loop
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      setReminders(prev => {
+        let changed = false;
+        const next = prev.map(rem => {
+          if (!rem.triggered && !rem.completed && rem.dateTime) {
+            const remTime = new Date(rem.dateTime);
+            if (now >= remTime) {
+              changed = true;
+              // Trigger Visual & Audio alert
+              setActiveAlert(rem);
+              playChime();
+
+              // Send system OS notification
+              if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+                new Notification(`Cortex Alert: ${rem.task}`, {
+                  body: `Active reminder: "${rem.task}" in note "${rem.fileName}"`,
+                });
+              }
+
+              // Notify the Tiptap node view component to show the 'triggered' styling
+              window.dispatchEvent(new CustomEvent('cortex-reminder-triggered', { detail: { id: rem.id } }));
+
+              return { ...rem, triggered: true };
+            }
+          }
+          return rem;
+        });
+
+        if (changed) {
+          localStorage.setItem("cortex_reminders", JSON.stringify(next));
+        }
+        return next;
+      });
+    }, 2000); // Check every 2 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Teleportation Logic
+  const handleTeleport = (alert: Reminder) => {
+    setActiveFileId(alert.fileId);
+    setSection('files');
+    
+    // Find matching page index
+    const pages = pagesMap[alert.fileId];
+    if (pages && pages.length > 0) {
+      const idx = pages.findIndex(p => p.content.includes(alert.id));
+      if (idx !== -1) {
+        setPageIdxMap(prev => ({ ...prev, [alert.fileId]: idx }));
+      }
+    }
+    
+    // Smooth scroll and visual flash glow effect
+    setTimeout(() => {
+      const nodes = document.querySelectorAll('.cortex-editor span');
+      let foundNode: HTMLElement | null = null;
+      nodes.forEach((node: any) => {
+        if (node.textContent?.includes(alert.task)) {
+          foundNode = node;
+        }
+      });
+      if (foundNode) {
+        (foundNode as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        (foundNode as HTMLElement).style.boxShadow = '0 0 20px #00f0ff';
+        (foundNode as HTMLElement).style.borderRadius = '12px';
+        setTimeout(() => {
+          if (foundNode) (foundNode as HTMLElement).style.boxShadow = '';
+        }, 3000);
+      }
+    }, 500);
+
+    // Dismiss active visual alert banner
+    setActiveAlert(null);
+  };
 
   // Auto-save the file LIST whenever it changes
   useEffect(() => {
@@ -851,6 +1033,7 @@ export default function Home() {
               const file = resolvedFilesForAI.find(f => f.id === r.id);
               return { name: r.name, content: file ? getFileContentForAI(file) : '' };
             })}
+            reminders={reminders}
           />
         </div>
       </div>
@@ -906,6 +1089,110 @@ export default function Home() {
                 borderRadius: 8, cursor: 'pointer'
               }}>Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Dynamic Glassmorphic Alarm Banner ── */}
+      {activeAlert && (
+        <div style={{
+          position: 'absolute',
+          top: 24,
+          right: 24,
+          width: 320,
+          background: 'rgba(11, 11, 22, 0.95)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(0, 240, 255, 0.4)',
+          borderRadius: 12,
+          padding: 16,
+          boxShadow: '0 12px 40px rgba(0, 240, 255, 0.25)',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          animation: 'fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="pulse-ring" style={{ width: 8, height: 8, borderRadius: '50%', background: '#00f0ff', display: 'inline-block' }} />
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1.5, color: '#00f0ff', textTransform: 'uppercase' }}>Cortex Alert</span>
+            </div>
+            <button onClick={() => {
+              // Dismiss: mark as completed/expired so it stops pulsing, and close the toast
+              window.dispatchEvent(new CustomEvent('cortex-reminder-expired', { detail: { id: activeAlert.id } }));
+              setReminders(prev => {
+                const next = prev.map(r => r.id === activeAlert.id ? { ...r, completed: true } : r);
+                localStorage.setItem("cortex_reminders", JSON.stringify(next));
+                return next;
+              });
+              setActiveAlert(null);
+            }} style={{ color: B.muted, fontSize: 16, cursor: 'pointer' }}>×</button>
+          </div>
+
+          {/* Content */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: B.text, lineHeight: 1.4 }}>
+              {activeAlert.task}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: B.surface, border: `1px solid ${B.border}`, color: B.muted }}>
+                📄 {activeAlert.fileName}
+              </span>
+              <span style={{ fontSize: 10, color: B.muted }}>
+                ⏰ {activeAlert.formattedDate}
+              </span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button
+              onClick={() => handleTeleport(activeAlert)}
+              style={{
+                flex: 1,
+                padding: '8px 12px',
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 600,
+                background: 'rgba(0, 240, 255, 0.15)',
+                color: '#00f0ff',
+                border: '1px solid rgba(0, 240, 255, 0.3)',
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'all 0.2s'
+              }}
+            >
+              Teleport & View
+            </button>
+            <button
+              onClick={() => {
+                // Snooze 5 minutes
+                const minutes = 5;
+                const newTime = new Date(Date.now() + minutes * 60000).toISOString();
+                setReminders(prev => {
+                  const next = prev.map(r => r.id === activeAlert.id ? { ...r, triggered: false, dateTime: newTime, formattedDate: 'In 5 mins' } : r);
+                  localStorage.setItem("cortex_reminders", JSON.stringify(next));
+                  return next;
+                });
+                // Re-register node as active (cancel triggered state)
+                window.dispatchEvent(new CustomEvent('cortex-reminder-triggered-cancel', { detail: { id: activeAlert.id } }));
+                setActiveAlert(null);
+              }}
+              style={{
+                padding: '8px 12px',
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 600,
+                background: B.elevated,
+                color: B.text,
+                border: `1px solid ${B.border}`,
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              Snooze
+            </button>
           </div>
         </div>
       )}
