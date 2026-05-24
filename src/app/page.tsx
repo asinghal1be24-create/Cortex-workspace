@@ -765,6 +765,36 @@ export default function Home() {
             </div>
           )}
 
+          {/* Focus Mode toggle */}
+          {!isMobile && (
+            <button
+              onClick={() => setFocusMode(v => !v)}
+              title={focusMode ? 'Exit Focus Mode' : 'Focus Mode — hide sidebar'}
+              style={{
+                padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+                cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
+                background: focusMode ? B.amberGlow : 'transparent',
+                color: focusMode ? B.amber : B.muted,
+                border: focusMode ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
+              }}
+              onMouseEnter={e => {
+                if (!focusMode) {
+                  e.currentTarget.style.color = B.amber;
+                  e.currentTarget.style.background = 'rgba(240,149,50,0.05)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (!focusMode) {
+                  e.currentTarget.style.color = B.muted;
+                  e.currentTarget.style.background = 'transparent';
+                }
+              }}
+            >
+              <span>{focusMode ? '◧' : '▣'}</span>
+              <span>Focus</span>
+            </button>
+          )}
+
           {/* Copilot toggle */}
           <button
             onClick={() => setCopilotOpen(v => !v)}
