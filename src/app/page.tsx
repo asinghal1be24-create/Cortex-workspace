@@ -5,6 +5,7 @@ import { WorkspaceFile } from "@/types";
 import DynamicCanvas, { getFileType } from "@/components/DynamicCanvas";
 import ConsciousnessView from "@/components/ConsciousnessView";
 import AICopilot from "@/components/AICopilot";
+import VaultUI from "@/components/VaultUI";
 import { getRelatedFiles } from "@/lib/similarity";
 import { exportToZip, syncToLocalDirectory } from "@/lib/exporter";
 
@@ -42,6 +43,7 @@ export default function Home() {
 
   const [activeFileId, setActiveFileId] = useState<string>('1');
   const [section, setSection]           = useState<'files' | 'consciousness'>('files');
+  const [vaultOpen, setVaultOpen]       = useState(false);
   const [focusMode, setFocusMode]       = useState(false);
   const [saveFlash, setSaveFlash]       = useState(false);
   const [bridgeResolver, setBridgeResolver] = useState<{ filename: string, amount: string, category: string } | null>(null);
@@ -977,6 +979,22 @@ export default function Home() {
             </button>
           )}
 
+          {/* Vault toggle */}
+          <button
+            onClick={() => setVaultOpen(true)}
+            title="Open Cortex Vault"
+            style={{
+              padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+              cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
+              background: vaultOpen ? B.amberGlow : 'transparent',
+              color: vaultOpen ? B.amber : B.muted,
+              border: vaultOpen ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
+            }}
+          >
+            <span>❖</span>
+            {!isMobile && <span>Vault</span>}
+          </button>
+
           {/* Copilot toggle */}
           <button
             onClick={() => setCopilotOpen(v => !v)}
@@ -1194,6 +1212,16 @@ export default function Home() {
               Snooze
             </button>
           </div>
+        </div>
+      )}
+      {/* Vault Modal Overlay */}
+      {vaultOpen && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyItems: 'center'
+        }}>
+          <VaultUI onClose={() => setVaultOpen(false)} />
         </div>
       )}
     </div>

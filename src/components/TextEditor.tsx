@@ -478,6 +478,76 @@ const TemporalReminderNode = Node.create({
 });
 
 
+// ── Vault Spark Extension ───────────────────────────────────────────────────
+
+function VaultSparkComponent(props: any) {
+  const { node } = props;
+  const { title } = node.attrs;
+  return (
+    <NodeViewWrapper as="span" style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 4px' }}>
+      <span
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: '4px',
+          padding: '2px 8px', borderRadius: '12px',
+          background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)',
+          color: 'var(--color-cortex-amber)', fontSize: '11px', fontWeight: 500, cursor: 'help',
+          userSelect: 'none'
+        }}
+        title={`Secured in Vault: ${title}`}
+      >
+        <span style={{ fontSize: 10 }}>🔒</span>
+        <span>Secured: {title}</span>
+      </span>
+    </NodeViewWrapper>
+  );
+}
+
+const VaultSparkNode = Node.create({
+  name: 'vaultSpark',
+  group: 'inline',
+  inline: true,
+  atom: true,
+
+  addAttributes() {
+    return { title: { default: '' } };
+  },
+
+  parseHTML() { return [{ tag: 'span[data-type="vault-spark"]' }]; },
+  renderHTML({ HTMLAttributes }) { return ['span', mergeAttributes(HTMLAttributes, { 'data-type': 'vault-spark' })]; },
+  addNodeView() { return ReactNodeViewRenderer(VaultSparkComponent); },
+
+  addKeyboardShortcuts() {
+    return {
+      Enter: () => {
+        const { state } = this.editor;
+        const { $from, empty } = state.selection;
+        if (!empty) return false;
+
+        const text = $from.parent.textContent;
+        const match = text.match(/^\/password\s+([^\s]+)\s+(.+)$/i);
+
+        if (match) {
+          const title = match[1];
+          const password = match[2];
+
+          this.editor.chain()
+            .deleteRange({ from: $from.start(), to: $from.end() })
+            .insertContent({ type: this.name, attrs: { title } })
+            .run();
+            
+          const event = new CustomEvent('cortex-vault-add', { 
+            detail: { title, username: '', password, notes: 'Added via /password command' } 
+          });
+          window.dispatchEvent(event);
+
+          return false;
+        }
+        return false;
+      },
+    };
+  },
+});
+
 // ── PageStrip ────────────────────────────────────────────────────────────────
 function PageStrip({ pages, currentIdx, onSelect, onAdd }: {
   pages: Page[]; currentIdx: number;
@@ -840,6 +910,7 @@ export default function TextEditor({
       TableCell,
       DataSparkNode,
       TemporalReminderNode,
+      VaultSparkNode,
     ],
     content,
     immediatelyRender: false,
