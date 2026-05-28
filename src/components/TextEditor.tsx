@@ -325,12 +325,16 @@ function TemporalReminderComponent(props: any) {
     // Listen for local notifications/alarms trigger events to update the pill state
     const handleTriggered = (e: any) => {
       if (e.detail.id === id) {
-        updateAttributes({ status: 'triggered' });
+        setTimeout(() => {
+          updateAttributes({ status: 'triggered' });
+        }, 0);
       }
     };
     const handleExpired = (e: any) => {
       if (e.detail.id === id) {
-        updateAttributes({ status: 'expired' });
+        setTimeout(() => {
+          updateAttributes({ status: 'expired' });
+        }, 0);
       }
     };
 
@@ -447,10 +451,10 @@ const TemporalReminderNode = Node.create({
         if (!empty) return false;
 
         const text = $from.parent.textContent;
-        const match = text.match(/^\/remind\s+(.+)$/i);
+        const match = text.match(/^\/(remind|alert)\s+(.+)$/i);
 
         if (match) {
-          const rawText = match[1].trim();
+          const rawText = match[2].trim();
           
           this.editor.chain()
             .deleteRange({ from: $from.start(), to: $from.end() })
@@ -467,9 +471,9 @@ const TemporalReminderNode = Node.create({
   addInputRules() {
     return [
       new InputRule({
-        find: /@remind\(([^)]+)\)/,
+        find: /@(remind|alert)\(([^)]+)\)/,
         handler: ({ state, range, match }) => {
-          const [_, rawText] = match;
+          const [_, type, rawText] = match;
           state.tr.replaceWith(range.from, range.to, this.type.create({ rawText: rawText.trim() }));
         },
       }),
