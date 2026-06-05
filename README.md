@@ -1,6 +1,6 @@
-# Antigravity (Cortex)
+# Cortex
 
-Antigravity (internally known as **Cortex**) is a next-generation, multi-modal cognitive workspace designed to serve as an interactive "consciousness" for your files, code bases, spreadsheets, and visual whiteboards.
+Cortex is a next-generation, multi-modal cognitive workspace designed to serve as an interactive "consciousness" for your files, code bases, spreadsheets, and visual whiteboards.
 
 ## 🔗 Direct Live Deployment
 *   **Production URL**: [cortex-workspace.vercel.app](https://cortex-workspace.vercel.app)
