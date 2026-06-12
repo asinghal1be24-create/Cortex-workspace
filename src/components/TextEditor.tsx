@@ -9,6 +9,7 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { useEffect, useRef, useState, useCallback } from 'react';
+import CyberTooltip from './CyberTooltip';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Page { id: number; content: string; }
@@ -881,13 +882,15 @@ function IconBtn({ title, onClick, active, children }: {
   title: string; onClick: () => void; active?: boolean; children: React.ReactNode;
 }) {
   return (
-    <button onClick={onClick} title={title} style={{
-      width: 32, height: 32, borderRadius: 7, flexShrink: 0,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      cursor: 'pointer', transition: 'all .15s', border: 'none',
-      background: active ? 'var(--color-cortex-amberGlow)' : 'transparent',
-      color: active ? 'var(--color-cortex-amber)' : 'var(--color-cortex-muted)',
-    }}>{children}</button>
+    <CyberTooltip title={title} position="bottom">
+      <button onClick={onClick} style={{
+        width: 32, height: 32, borderRadius: 7, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', transition: 'all .15s', border: 'none',
+        background: active ? 'var(--color-cortex-amberGlow)' : 'transparent',
+        color: active ? 'var(--color-cortex-amber)' : 'var(--color-cortex-muted)',
+      }}>{children}</button>
+    </CyberTooltip>
   );
 }
 

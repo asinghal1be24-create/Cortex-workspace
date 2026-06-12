@@ -1,11 +1,17 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import { AnimatePresence } from "framer-motion";
 import { WorkspaceFile } from "@/types";
+import { User } from "lucide-react";
 import DynamicCanvas, { getFileType } from "@/components/DynamicCanvas";
 import ConsciousnessView from "@/components/ConsciousnessView";
 import AICopilot from "@/components/AICopilot";
 import VaultUI from "@/components/VaultUI";
+import TemplateGallery from "@/components/TemplateGallery";
+import CyberTooltip from "@/components/CyberTooltip";
+import AuthModal from "@/components/AuthModal";
+import { useAuth } from "@/hooks/useAuth";
 import { getRelatedFiles } from "@/lib/similarity";
 import { exportToZip, syncToLocalDirectory } from "@/lib/exporter";
 
@@ -24,26 +30,20 @@ function saveToStorage(files: WorkspaceFile[], pagesMap: PagesMap) {
   } catch {}
 }
 
-// ── Default files shown on first ever load ────────────────────────────────────
-
-const DEFAULT_FILES: WorkspaceFile[] = [
-  { id: '1', name: 'Ideas.txt', content: '<p> </p>' },
-  { id: '2', name: 'script.m', content: '% MATLAB script\nx = linspace(0, 2*pi, 100);\ny = sin(x);\nplot(x, y);' },
-  { id: '3', name: 'Q2_Finance.csv', content: '[{"id":1,"category":"Rent","amount":12000},{"id":2,"category":"Food","amount":5000},{"id":3,"category":"Software","amount":800}]' },
-];
+// Removed DEFAULT_FILES array as we now use TemplateGallery.
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  // Always start with DEFAULT_FILES so server + client render identically.
-  // After hydration, the useEffect below overwrites with whatever is in localStorage.
-  const [files, setFiles]           = useState<WorkspaceFile[]>(DEFAULT_FILES);
+  const [files, setFiles]           = useState<WorkspaceFile[]>([]);
   const [pagesMap, setPagesMap]     = useState<PagesMap>({});
   const [pageIdxMap, setPageIdxMap] = useState<Record<string, number>>({});
 
-  const [activeFileId, setActiveFileId] = useState<string>('1');
+  const [activeFileId, setActiveFileId] = useState<string | null>(null);
   const [section, setSection]           = useState<'files' | 'consciousness'>('files');
   const [vaultOpen, setVaultOpen]       = useState(false);
+  const [showAuthModal, setShowAuthModal]     = useState(false);
+  const { user }                              = useAuth();
   const [focusMode, setFocusMode]       = useState(false);
   const [saveFlash, setSaveFlash]       = useState(false);
   const [bridgeResolver, setBridgeResolver] = useState<{ filename: string, amount: string, category: string } | null>(null);
@@ -177,18 +177,44 @@ export default function Home() {
       const rawFiles = localStorage.getItem(STORAGE_KEY);
       const rawPages = localStorage.getItem(PAGES_KEY);
       if (rawFiles) {
-        const stored = JSON.parse(rawFiles) as WorkspaceFile[];
+        // Nuke local storage if we detect the legacy Start_Here.md (to fix corrupted state for the user)
+        if (rawFiles.includes('Start_Here.md')) {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(PAGES_KEY);
+          return;
+        }
+
+        let stored = JSON.parse(rawFiles) as WorkspaceFile[];
+        
+        // Sanitize: remove duplicate files with the same ID or name (to clean up old duplicated template bugs)
+        const seenId = new Set<string>();
+        const seenName = new Set<string>();
+        stored = stored.filter(f => {
+          if (seenId.has(f.id) || seenName.has(f.name)) return false;
+          seenId.add(f.id);
+          seenName.add(f.name);
+          return true;
+        });
+
         if (stored.length > 0) {
           setFiles(stored);
-          setActiveFileId(stored[0].id);
         }
       }
+      
       if (rawPages) {
         setPagesMap(JSON.parse(rawPages) as PagesMap);
       }
     } catch {}
     hasLoaded.current = true;
   }, []);
+
+  const handleTemplateSelect = (selectedFiles: WorkspaceFile[]) => {
+    const newFiles = [...files, ...selectedFiles];
+    setFiles(newFiles);
+    setActiveFileId(selectedFiles[0].id);
+    setFocusMode(false);
+    saveToStorage(newFiles, pagesMap);
+  };
 
   // Request notifications permission on start
   useEffect(() => {
@@ -425,7 +451,7 @@ export default function Home() {
   }, []);
   // ──────────────────────────────────────────────────────────────────────────
 
-  const activeFile = files.find(f => f.id === activeFileId) || files[0];
+  const activeFile = activeFileId ? files.find(f => f.id === activeFileId) : null;
 
   const getFileContentForAI = (file: WorkspaceFile) => {
     if (!file) return "";
@@ -487,7 +513,11 @@ export default function Home() {
 
   const handleChangeBgType = (fileId: string, idx: number, bgType: 'dotted' | 'lined' | 'plain' | 'white') => {
     const existing = pagesMap[fileId];
-    if (!existing) return;
+    if (!existing) {
+      const fallbackContent = files.find(f => f.id === fileId)?.content || '';
+      setPagesMap(prev => ({ ...prev, [fileId]: [{ id: 1, content: fallbackContent, bgType }] }));
+      return;
+    }
     const updated = existing.map((p, i) => i === idx ? { ...p, bgType } : p);
     setPagesMap(prev => ({ ...prev, [fileId]: updated }));
   };
@@ -547,10 +577,21 @@ export default function Home() {
     elevated: 'var(--color-cortex-elevated)',
   };
 
-  const fileType = getFileType(activeFile.name);
+  // Removed duplicate activeFile definition
+  const fileType = activeFile ? getFileType(activeFile.name) : 'text';
   const supportsPages = fileType === 'text' || fileType === 'whiteboard';
-  const pages = supportsPages ? getPages(activeFile.id, activeFile.content) : null;
-  const currentPageIdx = getCurrentPageIdx(activeFile.id);
+  const pages = activeFile && supportsPages ? getPages(activeFile.id, activeFile.content) : null;
+  const currentPageIdx = activeFile ? getCurrentPageIdx(activeFile.id) : 0;
+
+  if (!activeFile) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', background: B.bg, color: B.text, fontFamily: "var(--font-dm-sans), system-ui, sans-serif", overflow: 'hidden', position: 'relative' }}>
+        {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+        {vaultOpen && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"><VaultUI onClose={() => setVaultOpen(false)} /></div>}
+        <TemplateGallery onSelect={handleTemplateSelect} />
+      </div>
+    );
+  }
 
   // Sidebar width logic
   let sidebarWidth = 260;
@@ -563,6 +604,11 @@ export default function Home() {
       fontFamily: "var(--font-dm-sans), system-ui, sans-serif",
       overflow: 'hidden', position: 'relative'
     }}>
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      <AnimatePresence>
+        {/* Removed old showOnboarding render */}
+      </AnimatePresence>
+
       {/* Mobile Overlay */}
       {isMobile && mobileMenuOpen && (
         <div 
@@ -588,7 +634,10 @@ export default function Home() {
       }}>
         {/* Logo */}
         <div style={{ padding: '20px 18px 14px', borderBottom: `1px solid ${B.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div 
+            onClick={() => { setActiveFileId(null); if (isMobile) setMobileMenuOpen(false); }} 
+            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+          >
             <div style={{
               width: 26, height: 26, borderRadius: 8, background: B.amber,
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: B.bg
@@ -635,6 +684,7 @@ export default function Home() {
             {files.map(f => (
               <div
                 key={f.id}
+                className="group"
                 onClick={() => {
                   setActiveFileId(f.id);
                   if (isMobile) setMobileMenuOpen(false);
@@ -659,10 +709,10 @@ export default function Home() {
                   {f.name}
                 </span>
                 <button
-                  className="del-btn"
+                  className="del-btn opacity-0 group-hover:opacity-100"
                   onClick={e => { e.stopPropagation(); handleDeleteFile(f.id); }}
                   style={{
-                    opacity: isMobile ? 1 : 0, transition: 'opacity .15s',
+                    opacity: isMobile ? 1 : undefined, transition: 'opacity .15s',
                     fontSize: 18, lineHeight: 1, color: B.muted,
                     flexShrink: 0, padding: '0 4px',
                     background: 'none', border: 'none', cursor: 'pointer',
@@ -733,9 +783,36 @@ export default function Home() {
             width: '100%', padding: '12px', borderRadius: 8, fontSize: 14,
             color: B.muted, border: `1px dashed ${B.border}`, fontWeight: 500,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            cursor: 'pointer'
+            cursor: 'pointer', marginBottom: '12px'
           }}>
             <span style={{ fontSize: 18, lineHeight: 1 }}>+</span> New File
+          </button>
+          
+          {/* Progressive Auth / Profile Button */}
+          <button onClick={() => setShowAuthModal(true)} style={{
+            width: '100%', padding: '10px 12px', borderRadius: 8, fontSize: 13,
+            color: user ? B.amber : B.muted, border: 'none', background: user ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+            display: 'flex', alignItems: 'center', gap: 10,
+            cursor: 'pointer', transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => { if(!user) { e.currentTarget.style.background = B.surface; e.currentTarget.style.color = B.text; } }}
+          onMouseLeave={(e) => { if(!user) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = B.muted; } }}
+          >
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%', background: user ? 'rgba(245, 158, 11, 0.2)' : B.surface,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: `1px solid ${user ? 'rgba(245, 158, 11, 0.3)' : B.border}`
+            }}>
+              <User size={14} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden' }}>
+              <span style={{ fontWeight: 500, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '140px' }}>
+                {user ? user.email : 'Sign In'}
+              </span>
+              <span style={{ fontSize: 10, opacity: 0.7 }}>
+                {user ? 'Cloud Sync Active' : 'Enable Cloud Sync'}
+              </span>
+            </div>
           </button>
         </div>
       </div>
@@ -780,34 +857,38 @@ export default function Home() {
               </div>
 
               {/* ── Save button ── */}
-              <button
-                onClick={handleSave}
-                style={{
-                  padding: isMobile ? '6px 10px' : '4px 12px', borderRadius: 7, fontSize: 11, fontWeight: 500,
-                  cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
-                  background: saveFlash ? 'rgba(77,186,132,0.12)' : B.amberGlow,
-                  color: saveFlash ? '#4dba84' : B.amber,
-                  border: saveFlash ? '1px solid rgba(77,186,132,0.3)' : `1px solid ${B.amberBorder}`,
-                }}
-              >
-                {saveFlash ? '✓' : '⬇'}{!isMobile && (saveFlash ? ' Saved' : ' Save')}
-              </button>
-
-              {/* ── Sync / Portability Button & Dropdown ── */}
-              <div style={{ position: 'relative' }}>
+              <CyberTooltip title="Save manually" position="bottom">
                 <button
-                  onClick={() => setShowSyncDropdown(v => !v)}
+                  onClick={handleSave}
                   style={{
                     padding: isMobile ? '6px 10px' : '4px 12px', borderRadius: 7, fontSize: 11, fontWeight: 500,
                     cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
-                    background: localDirHandle ? 'rgba(77, 186, 132, 0.12)' : showSyncDropdown ? B.amberGlow : 'transparent',
-                    color: localDirHandle ? '#4dba84' : showSyncDropdown ? B.amber : B.muted,
-                    border: localDirHandle ? '1px solid rgba(77, 186, 132, 0.3)' : showSyncDropdown ? `1px solid ${B.amberBorder}` : '1px solid transparent',
+                    background: saveFlash ? 'rgba(77,186,132,0.12)' : B.amberGlow,
+                    color: saveFlash ? '#4dba84' : B.amber,
+                    border: saveFlash ? '1px solid rgba(77,186,132,0.3)' : `1px solid ${B.amberBorder}`,
                   }}
                 >
-                  <span>⇱</span>
-                  <span>{!isMobile && (localDirHandle ? 'Synced' : 'Sync')}</span>
+                  {saveFlash ? '✓' : '⬇'}{!isMobile && (saveFlash ? ' Saved' : ' Save')}
                 </button>
+              </CyberTooltip>
+
+              {/* ── Sync / Portability Button & Dropdown ── */}
+              <div style={{ position: 'relative' }}>
+                <CyberTooltip title={localDirHandle ? 'Sync options' : 'Sync to disk'} position="bottom">
+                  <button
+                    onClick={() => setShowSyncDropdown(v => !v)}
+                    style={{
+                      padding: isMobile ? '6px 10px' : '4px 12px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+                      cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
+                      background: localDirHandle ? 'rgba(77, 186, 132, 0.12)' : showSyncDropdown ? B.amberGlow : 'transparent',
+                      color: localDirHandle ? '#4dba84' : showSyncDropdown ? B.amber : B.muted,
+                      border: localDirHandle ? '1px solid rgba(77, 186, 132, 0.3)' : showSyncDropdown ? `1px solid ${B.amberBorder}` : '1px solid transparent',
+                    }}
+                  >
+                    <span>⇱</span>
+                    <span>{!isMobile && (localDirHandle ? 'Synced' : 'Sync')}</span>
+                  </button>
+                </CyberTooltip>
 
                 {showSyncDropdown && (
                   <div style={{
@@ -949,66 +1030,85 @@ export default function Home() {
             </div>
           )}
 
-          {/* Focus Mode toggle */}
-          {!isMobile && (
-            <button
-              onClick={() => setFocusMode(v => !v)}
-              title={focusMode ? 'Exit Focus Mode' : 'Focus Mode — hide sidebar'}
-              style={{
-                padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
-                cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
-                background: focusMode ? B.amberGlow : 'transparent',
-                color: focusMode ? B.amber : B.muted,
-                border: focusMode ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
-              }}
-              onMouseEnter={e => {
-                if (!focusMode) {
-                  e.currentTarget.style.color = B.amber;
-                  e.currentTarget.style.background = 'rgba(240,149,50,0.05)';
-                }
-              }}
-              onMouseLeave={e => {
-                if (!focusMode) {
-                  e.currentTarget.style.color = B.muted;
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Focus Mode toggle */}
+            {!isMobile && (
+              <CyberTooltip title={focusMode ? 'Exit Focus Mode' : 'Focus Mode — hide sidebar'} position="bottom">
+                <button
+                  onClick={() => setFocusMode(v => !v)}
+                  style={{
+                    padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+                    cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
+                    background: focusMode ? B.amberGlow : 'transparent',
+                    color: focusMode ? B.amber : B.muted,
+                    border: focusMode ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
+                  }}
+                  onMouseEnter={e => {
+                    if (!focusMode) {
+                      e.currentTarget.style.color = B.amber;
+                      e.currentTarget.style.background = 'rgba(240,149,50,0.05)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!focusMode) {
+                      e.currentTarget.style.color = B.muted;
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
+                >
+                  <span>{focusMode ? '◧' : '▣'}</span>
+                  <span>Focus</span>
+                </button>
+              </CyberTooltip>
+            )}
+
+            {/* Vault toggle */}
+            <CyberTooltip
+              id="vault_btn"
+              title="Open Cortex Vault"
+              content="Secure local environment for sensitive data."
+              position="bottom"
+              align="end"
+              delay={1000}
             >
-              <span>{focusMode ? '◧' : '▣'}</span>
-              <span>Focus</span>
-            </button>
-          )}
+              <button
+                onClick={() => setVaultOpen(true)}
+                style={{
+                  padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+                  cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
+                  background: vaultOpen ? B.amberGlow : 'transparent',
+                  color: vaultOpen ? B.amber : B.muted,
+                  border: vaultOpen ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
+                }}
+              >
+                <span>❖</span>
+                {!isMobile && <span>Vault</span>}
+              </button>
+            </CyberTooltip>
 
-          {/* Vault toggle */}
-          <button
-            onClick={() => setVaultOpen(true)}
-            title="Open Cortex Vault"
-            style={{
-              padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
-              cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
-              background: vaultOpen ? B.amberGlow : 'transparent',
-              color: vaultOpen ? B.amber : B.muted,
-              border: vaultOpen ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
-            }}
-          >
-            <span>❖</span>
-            {!isMobile && <span>Vault</span>}
-          </button>
-
-          {/* Copilot toggle */}
-          <button
-            onClick={() => setCopilotOpen(v => !v)}
-            title="Toggle Neo"
-            style={{
-              padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
-              cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
-              background: copilotOpen ? B.amberGlow : 'transparent',
-              color: copilotOpen ? B.amber : B.muted,
-              border: copilotOpen ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
-            }}
-          >
-            NEO
-          </button>
+            {/* Copilot toggle */}
+            <CyberTooltip
+              id="copilot_btn"
+              title="Toggle Neo"
+              content="Your AI assistant."
+              position="bottom"
+              align="end"
+              delay={1000}
+            >
+              <button
+                onClick={() => setCopilotOpen(v => !v)}
+                style={{
+                  padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 500,
+                  cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 5,
+                  background: copilotOpen ? B.amberGlow : 'transparent',
+                  color: copilotOpen ? B.amber : B.muted,
+                  border: copilotOpen ? `1px solid ${B.amberBorder}` : `1px solid transparent`,
+                }}
+              >
+                NEO
+              </button>
+            </CyberTooltip>
+          </div>
         </div>
 
         {/* Content Area + Copilot */}
@@ -1215,15 +1315,7 @@ export default function Home() {
         </div>
       )}
       {/* Vault Modal Overlay */}
-      {vaultOpen && (
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 9999,
-          display: 'flex', alignItems: 'center', justifyItems: 'center'
-        }}>
-          <VaultUI onClose={() => setVaultOpen(false)} />
-        </div>
-      )}
+      {vaultOpen && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"><VaultUI onClose={() => setVaultOpen(false)} /></div>}
     </div>
   );
 }

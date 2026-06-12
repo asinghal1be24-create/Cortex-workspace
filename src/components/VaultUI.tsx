@@ -5,10 +5,33 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useVault, VaultItem } from '@/context/VaultContext';
 
 export default function VaultUI({ onClose }: { onClose: () => void }) {
-  const { isLocked, isDecrypting, vaultItems, unlockVault, lockVault, secureCopy, clipboardTimeLeft, updateVaultItem, addVaultItem, deleteVaultItem } = useVault();
+  const {
+    isLocked,
+    isDecrypting,
+    vaultExists,
+    currentVaultType,
+    vaultItems,
+    setupVault,
+    unlockVault,
+    lockVault,
+    secureCopy,
+    clipboardTimeLeft,
+    updateVaultItem,
+    addVaultItem,
+    deleteVaultItem
+  } = useVault();
+
+  // Unlock form
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  
+
+  // Setup form
+  const [setupMaster, setSetupMaster] = useState('');
+  const [setupMasterConfirm, setSetupMasterConfirm] = useState('');
+  const [setupBurner, setSetupBurner] = useState('');
+  const [setupBurnerConfirm, setSetupBurnerConfirm] = useState('');
+  const [setupError, setSetupError] = useState('');
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newItem, setNewItem] = useState({ title: '', username: '', password: '', notes: '' });
 
@@ -17,10 +40,33 @@ export default function VaultUI({ onClose }: { onClose: () => void }) {
     setError('');
     try {
       await unlockVault(password);
-      setPassword(''); // Clear password from local state
+      setPassword('');
     } catch (err) {
       setError('Decryption Failed. Unauthorized access attempt logged.');
     }
+  };
+
+  const handleSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSetupError('');
+    if (setupMaster !== setupMasterConfirm) {
+      setSetupError('Master passwords do not match.');
+      return;
+    }
+    if (setupMaster.length < 8) {
+      setSetupError('Master password must be at least 8 characters.');
+      return;
+    }
+    if (setupBurner && setupBurner !== setupBurnerConfirm) {
+      setSetupError('Burner passwords do not match.');
+      return;
+    }
+    if (setupBurner && setupBurner === setupMaster) {
+      setSetupError('Burner password cannot be the same as Master password.');
+      return;
+    }
+    
+    await setupVault(setupMaster, setupBurner || undefined);
   };
 
   const handleAddSubmit = (e: React.FormEvent) => {
@@ -30,6 +76,8 @@ export default function VaultUI({ onClose }: { onClose: () => void }) {
     setNewItem({ title: '', username: '', password: '', notes: '' });
     setShowAddForm(false);
   };
+
+  if (vaultExists === null) return null; // Loading state
 
   return (
     <div className="flex flex-col h-[90vh] max-h-[800px] w-full max-w-5xl bg-[#0a0a0a] text-zinc-300 font-mono relative overflow-hidden rounded-xl border border-zinc-800 shadow-2xl mx-auto">
@@ -56,7 +104,7 @@ export default function VaultUI({ onClose }: { onClose: () => void }) {
       <div className="flex-1 p-8 flex flex-col w-full relative">
         
         {/* Header */}
-        <div className="flex justify-between items-end border-b border-zinc-800 pb-4 mb-8">
+        <div className="flex justify-between items-end border-b border-zinc-800 pb-4 mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white tracking-widest uppercase flex items-center gap-3">
               Cortex Vault
@@ -87,7 +135,76 @@ export default function VaultUI({ onClose }: { onClose: () => void }) {
 
         {/* Content */}
         <AnimatePresence mode="wait">
-          {isLocked && !isDecrypting && (
+          
+          {/* ── SETUP VIEW ── */}
+          {vaultExists === false && !isDecrypting && (
+            <motion.div
+              key="setup"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex-1 flex flex-col items-center justify-center overflow-y-auto"
+            >
+              <div className="bg-zinc-900/50 p-8 rounded-lg border border-zinc-800 backdrop-blur-md w-full max-w-xl shadow-2xl relative">
+                <div className="text-center mb-6">
+                  <h2 className="text-amber-500 font-semibold tracking-wide text-xl uppercase mb-2">Initialize Cortex Vault</h2>
+                  <p className="text-zinc-400 text-sm">Your vault is encrypted locally. There is no cloud backup or password reset. Do not forget your keys.</p>
+                </div>
+
+                <form onSubmit={handleSetup} className="space-y-6">
+                  <div className="space-y-3">
+                    <h3 className="text-zinc-200 text-sm font-semibold uppercase tracking-widest border-b border-zinc-800 pb-2">1. Master Key</h3>
+                    <input
+                      type="password" required placeholder="Create Master Password"
+                      value={setupMaster} onChange={(e) => setSetupMaster(e.target.value)}
+                      className="w-full bg-black/50 border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 font-mono"
+                    />
+                    <input
+                      type="password" required placeholder="Confirm Master Password"
+                      value={setupMasterConfirm} onChange={(e) => setSetupMasterConfirm(e.target.value)}
+                      className="w-full bg-black/50 border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="text-zinc-200 text-sm font-semibold uppercase tracking-widest border-b border-zinc-800 pb-2">2. Burner Key (Optional)</h3>
+                    <p className="text-xs text-zinc-500 leading-relaxed">
+                      Enter a secondary "Burner" password. If forced to unlock your Vault, use this password. It will open an isolated dummy vault, hiding your master records perfectly via plausible deniability. Leave blank if you don't need this.
+                    </p>
+                    <input
+                      type="password" placeholder="Create Burner Password (Optional)"
+                      value={setupBurner} onChange={(e) => setSetupBurner(e.target.value)}
+                      className="w-full bg-black/50 border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 font-mono"
+                    />
+                    {setupBurner.length > 0 && (
+                      <input
+                        type="password" placeholder="Confirm Burner Password" required
+                        value={setupBurnerConfirm} onChange={(e) => setSetupBurnerConfirm(e.target.value)}
+                        className="w-full bg-black/50 border border-zinc-800 rounded px-4 py-3 text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 font-mono"
+                      />
+                    )}
+                  </div>
+
+                  {setupError && (
+                    <div className="text-red-400 text-xs text-center uppercase tracking-wide bg-red-500/10 py-2 rounded border border-red-500/20">
+                      {setupError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    style={{ background: '#f59e0b', color: '#000' }}
+                    className="w-full font-semibold py-3 rounded transition-colors uppercase tracking-widest text-sm shadow-[0_0_15px_rgba(245,158,11,0.2)] hover:brightness-110 mt-4"
+                  >
+                    Generate & Encrypt Vault
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── LOCKED VIEW ── */}
+          {vaultExists === true && isLocked && !isDecrypting && (
             <motion.div
               key="locked"
               initial={{ opacity: 0, y: 10 }}
@@ -139,6 +256,7 @@ export default function VaultUI({ onClose }: { onClose: () => void }) {
             </motion.div>
           )}
 
+          {/* ── DECRYPTING SPINNER ── */}
           {isDecrypting && (
             <motion.div
               key="decrypting"
@@ -163,6 +281,7 @@ export default function VaultUI({ onClose }: { onClose: () => void }) {
             </motion.div>
           )}
 
+          {/* ── UNLOCKED VIEW ── */}
           {!isLocked && !isDecrypting && vaultItems && (
             <motion.div
               key="unlocked"
@@ -170,6 +289,16 @@ export default function VaultUI({ onClose }: { onClose: () => void }) {
               animate={{ opacity: 1, scale: 1 }}
               className="flex-1 overflow-y-auto pr-4 custom-scrollbar relative pb-24"
             >
+              {currentVaultType === 'burner' && (
+                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm flex items-start gap-3 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                  <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                  <div>
+                    <p className="font-bold uppercase tracking-widest mb-1">Burner Vault Active</p>
+                    <p className="opacity-80">You have unlocked the dummy payload. Plausible deniability is active. Master records are cryptographically wiped from memory. Changes made here will not affect your Master Vault.</p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {vaultItems.map((item, idx) => (
                   <VaultCard 

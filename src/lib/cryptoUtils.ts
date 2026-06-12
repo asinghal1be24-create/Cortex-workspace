@@ -63,7 +63,7 @@ export async function attemptUnlock(
   password: string,
   realPayload: VaultPayload,
   dummyPayload: VaultPayload
-): Promise<any> {
+): Promise<{ data: any; vaultType: 'real' | 'burner' }> {
   // We use Uint8Array here so we can explicitly wipe them later
   const realCiphertext = base64ToUint8Array(realPayload.ciphertext);
   const dummyCiphertext = base64ToUint8Array(dummyPayload.ciphertext);
@@ -108,13 +108,13 @@ export async function attemptUnlock(
 
   if (realSuccess) {
     wipeFromMemory(dummyCiphertext);
-    return decryptedData;
+    return { data: decryptedData, vaultType: 'real' };
   }
 
   if (dummySuccess) {
     // CRITICAL: Wiping real payload from RAM when burner key is used
     wipeFromMemory(realCiphertext);
-    return decryptedData;
+    return { data: decryptedData, vaultType: 'burner' };
   }
 
   throw new Error("Invalid Vault Credentials");

@@ -555,7 +555,7 @@ export default function WhiteboardEditor({
     dotted: { backgroundImage: 'radial-gradient(circle, var(--color-cortex-muted) 1px, transparent 1px)', backgroundSize: '24px 24px' },
     lined: { backgroundImage: 'linear-gradient(transparent 95%, var(--color-cortex-borderHover) 5%)', backgroundSize: '100% 32px' },
     plain: { background: 'transparent' },
-    white: { background: '#ffffff' }
+    white: { background: '#FAF9F6' }
   };
 
   return (

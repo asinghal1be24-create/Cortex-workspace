@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/hooks/useAuth";
 import { WorkspaceFile } from "@/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -62,19 +63,21 @@ export function useSupabaseFiles() {
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const { user } = useAuth();
 
   // ── 1. Fetch all files on mount ─────────────────────────────────────────
   useEffect(() => {
     async function fetchFiles() {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       try {
         const { data, error } = await supabase
           .from("files")
           .select("*")
-          // ┌─────────────────────────────────────────────────────────┐
-          // │ FUTURE AUTH FILTER — add this line once login is wired: │
-          // │   .eq('user_id', currentUser.id)                        │
-          // └─────────────────────────────────────────────────────────┘
+          .eq('user_id', user.id)
           .order("updated_at", { ascending: false });
 
         if (error) {
@@ -98,17 +101,14 @@ export function useSupabaseFiles() {
 
   // ── 2. Create a new file ────────────────────────────────────────────────
   const createFile = useCallback(async (name = "Untitled.txt"): Promise<WorkspaceFile | null> => {
+    if (!user) return null;
     const { data, error } = await supabase
       .from("files")
       .insert({
         name,
         content: "",
         type: "text",
-        // ┌──────────────────────────────────────────────────────────────┐
-        // │ FUTURE AUTH — replace null with the real user UID:           │
-        // │   user_id: currentUser.id                                    │
-        // └──────────────────────────────────────────────────────────────┘
-        user_id: null,
+        user_id: user.id,
       })
       .select()
       .single();
@@ -130,14 +130,12 @@ export function useSupabaseFiles() {
 
   // ── 3. Delete a file ────────────────────────────────────────────────────
   const deleteFile = useCallback(async (id: string) => {
+    if (!user) return;
     const { error } = await supabase
       .from("files")
       .delete()
-      .eq("id", id);
-      // ┌──────────────────────────────────────────────────────────────┐
-      // │ FUTURE AUTH — also add .eq('user_id', currentUser.id) here   │
-      // │ as a safety guard so users can only delete their own rows.    │
-      // └──────────────────────────────────────────────────────────────┘
+      .eq("id", id)
+      .eq("user_id", user.id);
 
     if (error) {
       console.error("[Cortex] Failed to delete file:", error.message);
@@ -149,11 +147,13 @@ export function useSupabaseFiles() {
   // ── 4. Rename a file (name only, no debounce needed) ───────────────────
   const renameFile = useCallback(async (id: string, newName: string) => {
     setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, name: newName } : f)));
+    if (!user) return;
 
     const { error } = await supabase
       .from("files")
       .update({ name: newName, updated_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", user.id);
 
     if (error) {
       console.error("[Cortex] Failed to rename file:", error.message);
@@ -163,6 +163,7 @@ export function useSupabaseFiles() {
   // ── 5. Upsert content (debounced 1500ms) ───────────────────────────────
   const _doUpsert = useCallback(
     async (id: string, content: string, name: string) => {
+      if (!user) return;
       setSaveStatus("saving");
       const { error } = await supabase
         .from("files")
@@ -172,11 +173,7 @@ export function useSupabaseFiles() {
             name,
             content,
             updated_at: new Date().toISOString(),
-            // ┌──────────────────────────────────────────────────────────────┐
-            // │ FUTURE AUTH — replace null with the real UID:                │
-            // │   user_id: currentUser.id                                    │
-            // └──────────────────────────────────────────────────────────────┘
-            user_id: null,
+            user_id: user.id,
           },
           { onConflict: "id" }  // update-in-place if the row already exists
         );
@@ -190,7 +187,7 @@ export function useSupabaseFiles() {
         setTimeout(() => setSaveStatus("idle"), 2000);
       }
     },
-    []
+    [user]
   );
 
   const debouncedUpsert = useDebounce(_doUpsert, 1500);
