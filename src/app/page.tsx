@@ -288,7 +288,7 @@ export default function Home() {
         dateTime,
         formattedDate,
         rawText,
-        fileId: activeFileId,
+        fileId: activeFileId || '',
         fileName: fileName,
         triggered: false,
         completed: false,
@@ -485,7 +485,7 @@ export default function Home() {
   }, [files, pagesMap]);
 
   const relatedFiles = useMemo(() =>
-    getRelatedFiles(activeFileId, resolvedFilesForAI, getFileType, 4),
+    getRelatedFiles(activeFileId || '', resolvedFilesForAI, getFileType, 4),
     [activeFileId, resolvedFilesForAI]
   );
 
@@ -1117,7 +1117,7 @@ export default function Home() {
             {section === 'consciousness' ? (
               <ConsciousnessView
                 files={resolvedFilesForAI}
-                activeFileId={activeFileId}
+                activeFileId={activeFileId || ''}
                 onSelectFile={handleSelectFromGraph}
               />
             ) : (

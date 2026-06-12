@@ -19,7 +19,7 @@ const TEMPLATES: Record<TemplateType, { title: string, description: string, hove
     icon: PenTool,
     coverStyle: { background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)', borderBottom: '1px solid #374151' }, // Slate
     files: [
-      { id: 't_text', name: 'untitled.txt', content: '# New Note\n\nStart typing here...', type: 'text' }
+      { id: 't_text', name: 'untitled.txt', content: '# New Note\n\nStart typing here...' }
     ]
   },
   code: {
@@ -29,7 +29,7 @@ const TEMPLATES: Record<TemplateType, { title: string, description: string, hove
     icon: Code2,
     coverStyle: { background: 'linear-gradient(135deg, #312e81 0%, #1e1b4b 100%)', borderBottom: '1px solid #4338ca' }, // Indigo
     files: [
-      { id: 't_code', name: 'untitled.code', content: 'function main() {\n  console.log("Hello Cortex!");\n}\n\nmain();', type: 'code' }
+      { id: 't_code', name: 'untitled.code', content: 'function main() {\n  console.log("Hello Cortex!");\n}\n\nmain();' }
     ]
   },
   finance: {
@@ -39,7 +39,7 @@ const TEMPLATES: Record<TemplateType, { title: string, description: string, hove
     icon: Database,
     coverStyle: { background: 'linear-gradient(135deg, #064e3b 0%, #022c22 100%)', borderBottom: '1px solid #059669' }, // Emerald
     files: [
-      { id: 't_finance', name: 'untitled.csv', content: 'Date,Category,Amount\n2024-01-01,Food,25.50\n', type: 'finance' }
+      { id: 't_finance', name: 'untitled.csv', content: 'Date,Category,Amount\n2024-01-01,Food,25.50\n' }
     ]
   },
   canvas: {
@@ -49,7 +49,7 @@ const TEMPLATES: Record<TemplateType, { title: string, description: string, hove
     icon: LayoutTemplate,
     coverStyle: { background: 'linear-gradient(135deg, #78350f 0%, #451a03 100%)', borderBottom: '1px solid #b45309' }, // Amber
     files: [
-      { id: 't_canvas', name: 'untitled.canvas', content: '{"version":1,"nodes":[],"edges":[]}', type: 'whiteboard' }
+      { id: 't_canvas', name: 'untitled.canvas', content: '{"version":1,"nodes":[],"edges":[]}' }
     ]
   }
 };
@@ -173,7 +173,6 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
     const welcomeFile: WorkspaceFile = {
       id: `welcome_file_${Date.now()}`,
       name: 'Start.txt',
-      type: 'text',
       content: welcomeContent
     };
     
