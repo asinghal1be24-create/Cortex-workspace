@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { WorkspaceFile } from '@/types';
 import { Code2, Database, PenTool, LayoutTemplate, FilePlus2 } from 'lucide-react';
 
-export type TemplateType = 'text' | 'code' | 'finance' | 'canvas';
+export type TemplateType = 'text' | 'code' | 'finance' | 'canvas' | 'empty';
 
 interface TemplateGalleryProps {
   onSelect: (files: WorkspaceFile[]) => void;
@@ -33,7 +33,7 @@ const TEMPLATES: Record<TemplateType, { title: string, description: string, hove
     ]
   },
   finance: {
-    title: 'Finance & Data',
+    title: 'Finance',
     description: 'Grid-based spreadsheet environment for modeling and tabular datasets.',
     hoverTip: 'Grid-based editor for .csv datasets.',
     icon: Database,
@@ -51,6 +51,16 @@ const TEMPLATES: Record<TemplateType, { title: string, description: string, hove
     files: [
       { id: 't_canvas', name: 'untitled.canvas', content: '{"version":1,"nodes":[],"edges":[]}' }
     ]
+  },
+  empty: {
+    title: 'Empty File',
+    description: 'Start fresh with a clean, completely empty text document.',
+    hoverTip: 'Creates a blank workspace with a single empty .txt file.',
+    icon: FilePlus2,
+    coverStyle: { background: 'linear-gradient(135deg, #27272a 0%, #09090b 100%)', borderBottom: '1px solid #3f3f46' }, // Zinc
+    files: [
+      { id: 't_empty', name: 'untitled.txt', content: '' }
+    ]
   }
 };
 
@@ -58,7 +68,16 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
   const [hovered, setHovered] = useState<TemplateType | null>(null);
 
   const handleSelect = (type: TemplateType) => {
-    const welcomeContent = `<h1>🚀 Welcome to Cortex</h1>
+    // Auto incrementing IDs to avoid conflicts if they spawn multiple
+    const instantiatedFiles = TEMPLATES[type].files.map(f => ({
+      ...f,
+      id: `${f.id}_${Date.now()}`
+    }));
+
+    if (type === 'empty') {
+      onSelect(instantiatedFiles);
+    } else {
+      const welcomeContent = `<h1>🚀 Welcome to Cortex</h1>
 <p>Cortex is an all-in-one workspace that combines notes, coding, data analysis, visual thinking, and AI into a single seamless experience.</p>
 <hr />
 <h2>📌 The 4 Core Workspaces</h2>
@@ -170,19 +189,14 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
 </ol>
 <p>Welcome to a smarter way of thinking, building, and creating with Cortex.</p>`;
 
-    const welcomeFile: WorkspaceFile = {
-      id: `welcome_file_${Date.now()}`,
-      name: 'Start.txt',
-      content: welcomeContent
-    };
-    
-    // Auto incrementing IDs to avoid conflicts if they spawn multiple
-    const instantiatedFiles = TEMPLATES[type].files.map(f => ({
-      ...f,
-      id: `${f.id}_${Date.now()}`
-    }));
-
-    onSelect([welcomeFile, ...instantiatedFiles]);
+      const welcomeFile: WorkspaceFile = {
+        id: `welcome_file_${Date.now()}`,
+        name: 'Start.txt',
+        content: welcomeContent
+      };
+      
+      onSelect([welcomeFile, ...instantiatedFiles]);
+    }
   };
 
   return (
@@ -196,7 +210,7 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <h1 className="text-4xl font-bold text-white tracking-widest uppercase mb-4">New Workspace</h1>
+            <h1 className="text-4xl font-bold text-white tracking-widest uppercase mb-4">Cortex</h1>
             <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
               Select a foundational pillar. Cortex will instantly provision an environment tailored to your workflow.
             </p>
@@ -204,7 +218,7 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
         </div>
 
         {/* Notebook Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 w-full">
           {(Object.entries(TEMPLATES) as [TemplateType, typeof TEMPLATES[TemplateType]][]).map(([key, template], idx) => {
             const Icon = template.icon;
             const isHovered = hovered === key;
@@ -256,7 +270,7 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
 
                   {/* Bottom Info Panel */}
                   <div className="h-2/5 p-6 flex flex-col bg-[#12121a] relative z-20">
-                    <h3 className={`text-xl font-bold uppercase tracking-wide mb-2 transition-colors duration-300 ${isHovered ? 'text-amber-500' : 'text-white'}`}>
+                    <h3 className={`text-lg xl:text-xl font-bold uppercase tracking-wide mb-2 transition-colors duration-300 ${isHovered ? 'text-amber-500' : 'text-white'}`}>
                       {template.title}
                     </h3>
                     <p className={`text-zinc-500 text-sm leading-relaxed flex-1 transition-opacity duration-300 absolute inset-x-6 top-[3.5rem] ${isHovered ? 'opacity-0' : 'opacity-100'}`}>
