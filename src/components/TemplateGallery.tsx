@@ -211,7 +211,7 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <h1 className="text-4xl font-bold text-white tracking-widest uppercase mb-4">Cortex</h1>
-            <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
+            <p className="text-zinc-300 text-lg max-w-2xl mx-auto">
               Select a foundational pillar. Cortex will instantly provision an environment tailored to your workflow.
             </p>
           </motion.div>
@@ -232,7 +232,16 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
                 onHoverStart={() => setHovered(key)}
                 onHoverEnd={() => setHovered(null)}
                 onClick={() => handleSelect(key)}
-                className="relative group cursor-pointer"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelect(key);
+                  }
+                }}
+                onFocus={() => setHovered(key)}
+                onBlur={() => setHovered(null)}
+                tabIndex={0}
+                className="relative group cursor-pointer max-w-[280px] w-full mx-auto outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-4 focus-visible:ring-offset-[#080810] rounded-2xl"
               >
                 {/* Glow effect behind the card */}
                 <div 
@@ -240,7 +249,7 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
                 />
 
                 {/* The Notebook Card */}
-                <div className={`relative flex flex-col rounded-2xl overflow-hidden bg-[#12121a] border border-zinc-800 shadow-2xl transition-all duration-300 transform aspect-[3/4] ${isHovered ? '-translate-y-2 shadow-[0_20px_40px_rgba(0,0,0,0.5)] border-zinc-600' : ''}`}>
+                <div className={`relative flex flex-col rounded-2xl overflow-hidden bg-[#12121a] border border-zinc-800 shadow-2xl transition-all duration-300 transform h-[340px] ${isHovered ? '-translate-y-2 shadow-[0_20px_40px_rgba(0,0,0,0.5)] border-zinc-600' : ''}`}>
                   
                   {/* Top Cover (Gradient & Binding) */}
                   <div className="relative flex-1 flex flex-col items-center justify-center" style={template.coverStyle}>
@@ -269,16 +278,28 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
                   </div>
 
                   {/* Bottom Info Panel */}
-                  <div className="h-2/5 p-6 flex flex-col bg-[#12121a] relative z-20">
-                    <h3 className={`text-lg xl:text-xl font-bold uppercase tracking-wide mb-2 transition-colors duration-300 ${isHovered ? 'text-amber-500' : 'text-white'}`}>
-                      {template.title}
-                    </h3>
-                    <p className={`text-zinc-500 text-sm leading-relaxed flex-1 transition-opacity duration-300 absolute inset-x-6 top-[3.5rem] ${isHovered ? 'opacity-0' : 'opacity-100'}`}>
-                      {template.description}
-                    </p>
+                  <div className="h-[150px] p-5 flex flex-col justify-between bg-[#12121a] relative z-20">
+                    <div>
+                      <h3 className={`text-lg xl:text-xl font-bold uppercase tracking-wide mb-1 transition-colors duration-300 ${isHovered ? 'text-amber-500' : 'text-white'}`}>
+                        {template.title}
+                      </h3>
+                      
+                      {/* Description & Hover Tip Container */}
+                      <div className="relative min-h-[60px] mt-1 overflow-hidden">
+                        <p className={`text-zinc-400 text-xs leading-relaxed transition-opacity duration-300 absolute inset-0 ${isHovered ? 'opacity-0' : 'opacity-100'}`}>
+                          {template.description}
+                        </p>
 
-                    <div className={`text-amber-500 text-xs font-medium leading-relaxed mt-auto transition-all duration-300 absolute inset-x-6 top-[3.5rem] ${isHovered ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-2 pointer-events-none'}`}>
-                      {template.hoverTip}
+                        <div className={`text-amber-500 text-xs font-medium leading-relaxed transition-all duration-300 absolute inset-0 ${isHovered ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-2 pointer-events-none'}`}>
+                          {template.hoverTip}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Select Action / Visual CTA */}
+                    <div className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-1 transition-colors duration-300 mt-2 ${isHovered ? 'text-amber-500' : 'text-zinc-500'}`}>
+                      <span>Select Template</span>
+                      <span className={`transition-transform duration-300 ${isHovered ? 'translate-x-1' : ''}`}>→</span>
                     </div>
                   </div>
 
