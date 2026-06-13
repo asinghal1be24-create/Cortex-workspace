@@ -42,6 +42,58 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  const [width, setWidth] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("cortex_neo_sidebar_width");
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= 240 && parsed <= 800) {
+          return parsed;
+        }
+      }
+    }
+    return 320;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const [handleHovered, setHandleHovered] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("cortex_neo_sidebar_width", width.toString());
+  }, [width]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const newWidth = window.innerWidth - e.clientX;
+      if (newWidth >= 240 && newWidth <= 800) {
+        setWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "col-resize";
+    }
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+    };
+  }, [isResizing]);
+
+  const startResizing = (mouseDownEvent: React.MouseEvent) => {
+    mouseDownEvent.preventDefault();
+    setIsResizing(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -105,7 +157,7 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
 
   return (
     <div style={{
-      width: 320,
+      width: width,
       background: B.sidebar,
       borderLeft: `1px solid ${B.border}`,
       display: 'flex',
@@ -114,6 +166,32 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
       position: 'relative',
       zIndex: 20,
     }}>
+      {/* Draggable Resize Handle */}
+      <div
+        onMouseDown={startResizing}
+        onMouseEnter={() => setHandleHovered(true)}
+        onMouseLeave={() => setHandleHovered(false)}
+        style={{
+          position: 'absolute',
+          left: -4,
+          top: 0,
+          bottom: 0,
+          width: 8,
+          cursor: 'col-resize',
+          zIndex: 30,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <div style={{
+          width: 2,
+          height: '100%',
+          backgroundColor: (isResizing || handleHovered) ? '#3b82f6' : 'transparent',
+          boxShadow: (isResizing || handleHovered) ? '0 0 8px #3b82f6, 0 0 15px rgba(59, 130, 246, 0.5)' : 'none',
+          transition: 'all 0.15s ease',
+        }} />
+      </div>
       {/* Header */}
       <div style={{
         height: 56, borderBottom: `1px solid ${B.border}`, display: 'flex',
