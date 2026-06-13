@@ -1,7 +1,7 @@
-# Project Report: Antigravity (Cortex) Workspace Architecture
+# Project Report: Cortex Workspace Architecture
 
 ## Executive Summary
-**Antigravity** (internally known as **Cortex**) is a state-of-the-art, multi-modal cognitive workspace designed to bridge the gap between structured databases, text records, code files, and freeform vector whiteboards. Designed for privacy-conscious developers, security researchers, and productivity min-maxers ("the nerds"), Cortex runs **100% locally and client-side** in the browser, while providing hooks for cloud persistence (Supabase) and ultra-fast edge inference (Groq/Llama 3.3 70B).
+**Cortex** is a state-of-the-art, multi-modal cognitive workspace designed to bridge the gap between structured databases, text records, code files, and freeform vector whiteboards. Designed for privacy-conscious developers, security researchers, and productivity min-maxers ("the nerds"), Cortex runs **100% locally and client-side** in the browser, while providing hooks for cloud persistence (Supabase) and ultra-fast edge inference (Groq/Llama 3.3 70B).
 
 The system features a **Cyberpunk Neon / Glassmorphic** theme, dynamic semantic linking using client-side similarity calculations, zero-knowledge cryptographic credential storage with plausible deniability decoys, and a W3C File System Access API pipeline for real-time hard-drive syncing.
 
