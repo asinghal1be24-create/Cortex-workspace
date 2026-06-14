@@ -83,116 +83,62 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
       onSelect(instantiatedFiles);
     } else {
       const welcomeContent = `<h1>🚀 Welcome to Cortex</h1>
-<p>Cortex is an all-in-one workspace that combines notes, coding, data analysis, visual thinking, and AI into a single seamless experience.</p>
+<p>Cortex is a next-generation, all-in-one cognitive workspace. It unifies notes, coding, data analysis, visual thinking, and AI into a single seamless, local-first environment.</p>
 <hr />
-<h2>📌 The 4 Core Workspaces</h2>
-<h3>📝 Text Notes</h3>
-<p>Perfect for:</p>
+<h2>📌 Supported File Types & Workspaces</h2>
+
+<h3>📝 Text Notes (.txt, .md)</h3>
+<p>A clean, distraction-free markdown editor.</p>
 <ul>
-  <li>Documentation</li>
-  <li>Journaling</li>
-  <li>Research notes</li>
-  <li>Project planning</li>
+  <li>Create <strong>.md</strong> files for rich documentation, journals, and project planning.</li>
+  <li>Create <strong>.txt</strong> files for raw, unformatted notes.</li>
 </ul>
-<p>Features:</p>
+
+<h3>💻 Code Editor (.py, .cpp, .js, .ts, etc.)</h3>
+<p>A developer-focused environment with rich syntax highlighting.</p>
 <ul>
-  <li>Clean writing interface</li>
-  <li>Multiple pages per document</li>
-  <li>Organized note-taking</li>
+  <li>Write scripts and applications by creating files like <strong>.py</strong> (Python), <strong>.cpp</strong> (C++), <strong>.js</strong> (JavaScript), or <strong>.tsx</strong> (React).</li>
+  <li>Supports deep coding workflows in a monospaced, distraction-free view.</li>
 </ul>
-<h3>💻 Code Editor</h3>
-<p>Built for developers who need a focused coding environment.</p>
-<p>Features:</p>
+
+<h3>📊 Finance & Data (.csv)</h3>
+<p>A grid-based spreadsheet workspace for tabular datasets.</p>
 <ul>
-  <li>Syntax highlighting</li>
-  <li>Developer-friendly formatting</li>
-  <li>Support for deep coding workflows</li>
+  <li>Create <strong>.csv</strong> files to instantly open a spreadsheet environment.</li>
+  <li>Perfect for financial tracking, modeling, and structured data analysis.</li>
 </ul>
-<h3>📊 Finance & Data</h3>
-<p>A spreadsheet-style workspace for working with structured data.</p>
-<p>Perfect for:</p>
+
+<h3>🎨 Whiteboard (.canvas)</h3>
+<p>An infinite spatial canvas for visual thinking.</p>
 <ul>
-  <li>CSV files</li>
-  <li>Financial tracking</li>
-  <li>Data analysis</li>
-  <li>Tables and datasets</li>
+  <li>Create <strong>.canvas</strong> files to start brainstorming with freehand drawing, sticky notes, and mind maps.</li>
 </ul>
-<h3>🎨 Whiteboard</h3>
-<p>An infinite canvas for visual thinking and brainstorming.</p>
-<p>Features:</p>
-<ul>
-  <li>Freehand drawing</li>
-  <li>Sticky notes</li>
-  <li>Diagrams and mind maps</li>
-  <li>Unlimited workspace</li>
-</ul>
-<p>💡 Tip: Both Text Notes and Whiteboards support multiple pages. Click the ➕ button at the bottom to add a new page.</p>
+
 <hr />
 <h2>🔐 Cortex Vault</h2>
-<p>Keep sensitive information secure.</p>
-<p>Use the Vault button in the top-right corner to access a:</p>
-<ul>
-  <li>Password-protected area</li>
-  <li>Encrypted local storage space</li>
-</ul>
-<p>Ideal for storing:</p>
-<ul>
-  <li>API keys</li>
-  <li>Passwords</li>
-  <li>Private credentials</li>
-  <li>Sensitive project information</li>
-</ul>
+<p>Keep sensitive information absolutely secure. Click the <strong>Vault</strong> button in the top-right corner to access a password-protected, encrypted local storage space. Ideal for API keys, credentials, and private project information.</p>
+
 <hr />
 <h2>🤖 Meet NEO — Your AI Copilot</h2>
-<p>Click NEO in the top-right corner to launch your AI assistant.</p>
-<p>What makes NEO special?</p>
-<ul>
-  <li>Understands your entire workspace</li>
-  <li>Sees context across files and projects</li>
-  <li>Helps you work faster and smarter</li>
-</ul>
-<p>You can ask NEO to:</p>
-<ul>
-  <li>Write or debug code</li>
-  <li>Analyze spreadsheet data</li>
-  <li>Summarize notes</li>
-  <li>Generate ideas</li>
-  <li>Answer questions about your workspace</li>
-</ul>
+<p>Click <strong>NEO</strong> in the top-right corner to launch your AI assistant. NEO understands your entire workspace context across all files and projects. Ask NEO to write Python code, analyze your CSV datasets, summarize your markdown notes, or brainstorm on a canvas.</p>
+
 <hr />
 <h2>🔄 Local Sync & Backup</h2>
-<p>Keep your work connected to your computer.</p>
-<p>With Sync, you can:</p>
-<ul>
-  <li>Link a folder on your device</li>
-  <li>Automatically save changes in real time</li>
-  <li>Keep files backed up locally</li>
-</ul>
-<p>Need to move your workspace?</p>
-<ul>
-  <li>Export everything as a ZIP archive anytime</li>
-</ul>
+<p>Cortex is local-first. Link a folder on your device to automatically sync changes in real-time, or export everything as a ZIP archive at any time.</p>
+
 <hr />
 <h2>🧠 Consciousness Graph</h2>
-<p>Open the ◎ Consciousness tab from the left sidebar to see your workspace as a connected knowledge map.</p>
-<p>Cortex automatically:</p>
-<ul>
-  <li>Finds relationships between ideas</li>
-  <li>Connects related notes and files</li>
-  <li>Visualizes project knowledge</li>
-  <li>Helps you discover hidden patterns</li>
-</ul>
-<p>Think of it as a living map of everything you're working on.</p>
+<p>Open the <strong>◎ Consciousness</strong> tab from the left sidebar to see a living map of everything you are working on. Cortex automatically finds relationships and connects related notes and files.</p>
+
 <hr />
 <h3>🎯 Quick Start</h3>
 <ol>
-  <li>Create a Note, Spreadsheet, Code File, or Whiteboard.</li>
-  <li>Store sensitive information in the Vault.</li>
-  <li>Ask NEO for help whenever you're stuck.</li>
-  <li>Enable Sync to save everything locally.</li>
-  <li>Explore the Consciousness Graph to uncover connections across your work.</li>
+  <li>Create a new file (e.g., <code>script.py</code>, <code>budget.csv</code>, or <code>architecture.canvas</code>).</li>
+  <li>Store sensitive API keys in the Vault.</li>
+  <li>Ask NEO to help you write code or summarize data.</li>
+  <li>Enable Sync to save everything to your local hard drive.</li>
 </ol>
-<p>Welcome to a smarter way of thinking, building, and creating with Cortex.</p>`;
+<p>Welcome to a smarter way of thinking, building, and creating.</p>`;
 
       const welcomeFile: WorkspaceFile = {
         id: `welcome_file_${Date.now()}`,
@@ -205,8 +151,8 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 bg-[#040404] h-full overflow-y-auto">
-      <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
+    <div className="flex-1 flex flex-col p-4 sm:p-8 bg-[#040404] h-full overflow-y-auto overflow-x-hidden w-full">
+      <div className="w-full max-w-6xl mx-auto flex flex-col items-center my-auto py-10">
         
         {/* Header */}
         <div className="text-center mb-10 md:mb-16">
@@ -246,7 +192,7 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
                 onFocus={() => setHovered(key)}
                 onBlur={() => setHovered(null)}
                 tabIndex={0}
-                className="group cursor-pointer relative max-w-[300px] w-full mx-auto outline-none focus-visible:ring-2 focus-visible:ring-white/20 rounded-2xl"
+                className="group cursor-pointer relative w-full max-w-[340px] sm:max-w-[300px] mx-auto outline-none focus-visible:ring-2 focus-visible:ring-white/20 rounded-2xl touch-manipulation"
               >
                 {/* Outer glowing border effect */}
                 <div 
@@ -255,7 +201,7 @@ export default function TemplateGallery({ onSelect }: TemplateGalleryProps) {
                 />
 
                 {/* The Minimalist Card */}
-                <div className="relative flex flex-col justify-between rounded-2xl bg-[#0a0a0a] border border-white/5 transition-all duration-500 h-[320px] p-6 z-10 overflow-hidden">
+                <div className="relative flex flex-col justify-between rounded-2xl bg-[#0a0a0a] border border-white/5 transition-all duration-500 h-[320px] p-5 sm:p-6 z-10 overflow-hidden active:scale-[0.98]">
                   
                   {/* Subtle Background Glow inside the card */}
                   <div 
