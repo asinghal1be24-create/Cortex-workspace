@@ -275,6 +275,14 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
         <div style={{ fontSize: 10, color: B.muted, textAlign: 'center', marginTop: 8 }}>
           Reading: {activeFileName} + {relatedFilesData.length} related files
         </div>
+        <div style={{ 
+          fontSize: 10, color: B.amber, textAlign: 'center', marginTop: 6, 
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, 
+          padding: '4px 8px', background: 'rgba(245,158,11,0.1)', 
+          borderRadius: '4px', border: `1px solid ${B.amberBorder}` 
+        }}>
+          🛡️ Vault Firewall Active: NEO cannot access your encrypted files.
+        </div>
       </div>
     </div>
   );
