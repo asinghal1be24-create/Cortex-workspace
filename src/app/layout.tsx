@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { VaultProvider } from "@/context/VaultContext";
+import { Analytics } from "@vercel/analytics/next";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({
         <VaultProvider>
           {children}
         </VaultProvider>
+        <Analytics />
       </body>
     </html>
   );
