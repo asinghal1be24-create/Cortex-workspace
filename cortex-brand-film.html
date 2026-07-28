@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CORTEX — Brand Film</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050505;
+    --amber:#f09532;
+    --warm:#e4e4e7;
+    --glow:rgba(240,149,50,0.18);
+    --glow-soft:rgba(240,149,50,0.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;background:#000;}
+  body{
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Inter',sans-serif;
+    overflow:hidden;
+  }
+  #stage-wrap{
+    width:100%;
+    max-width:1000px;
+    aspect-ratio:16/9;
+    position:relative;
+    background:var(--bg);
+    overflow:hidden;
+    border-radius:2px;
+    box-shadow:0 40px 120px rgba(0,0,0,0.6);
+    transition:background 1.1s ease;
+  }
+  #stage-wrap.white-mode{background:#fdfdfb;}
+
+  canvas#particles{
+    position:absolute;inset:0;width:100%;height:100%;
+    opacity:1;transition:opacity 1s ease;
+  }
+  #stage-wrap.white-mode canvas#particles{opacity:0;}
+
+  #text-layer{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:6%;
+  }
+
+  .line{
+    font-weight:300;
+    font-size:clamp(18px,3.4vw,34px);
+    color:var(--warm);
+    letter-spacing:0.01em;
+    opacity:0;
+    text-shadow:0 0 30px var(--glow-soft);
+    transition:opacity 1.1s ease, transform 1.1s ease;
+    transform:translateY(10px);
+    position:absolute;
+  }
+  .line.show{opacity:1;transform:translateY(0);}
+
+  .wordmark{
+    font-weight:800;
+    letter-spacing:0.14em;
+    font-size:clamp(40px,10vw,110px);
+    color:#fff;
+    opacity:0;
+    position:absolute;
+    text-shadow:0 0 60px var(--glow), 0 0 140px var(--glow-soft);
+    transition:opacity 1.6s ease, letter-spacing 1.6s ease, transform 1.6s ease;
+    transform:scale(0.92);
+  }
+  .wordmark.show{opacity:1;letter-spacing:0.2em;transform:scale(1);}
+
+  .accent-dot{
+    width:14px;height:14px;border-radius:50%;
+    background:var(--amber);
+    box-shadow:0 0 40px 12px var(--glow);
+    opacity:0;
+    position:absolute;
+    top:32%;
+    transition:opacity 1s ease, transform 1s ease;
+    transform:scale(0.6);
+  }
+  .accent-dot.show{opacity:1;transform:scale(1);}
+
+  .white-text{
+    color:#0a0a0a;
+    font-weight:400;
+    font-size:clamp(16px,2.6vw,26px);
+    opacity:0;
+    position:absolute;
+    top:52%;
+    transition:opacity 1.1s ease;
+    letter-spacing:0.01em;
+  }
+  .white-text.show{opacity:1;}
+
+  .tagline{
+    display:flex;gap:0.4em;flex-wrap:wrap;justify-content:center;
+    position:absolute;
+  }
+  .tagline span{
+    font-weight:300;
+    font-size:clamp(20px,4.2vw,42px);
+    color:var(--warm);
+    opacity:0;
+    text-shadow:0 0 30px var(--glow-soft);
+    transition:opacity 0.9s ease, transform 0.9s ease;
+    transform:translateY(8px);
+  }
+  .tagline span.show{opacity:1;transform:translateY(0);}
+
+  .pulse{
+    position:absolute;
+    width:8px;height:8px;border-radius:50%;
+    background:var(--amber);
+    opacity:0;
+  }
+  .pulse.fire{
+    animation:pulseOut 1.8s ease-out forwards;
+  }
+  @keyframes pulseOut{
+    0%{opacity:0.9;box-shadow:0 0 0 0 var(--glow);transform:scale(1);}
+    100%{opacity:0;box-shadow:0 0 0 60px rgba(240,149,50,0);transform:scale(1);}
+  }
+
+  .end-card{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    opacity:0;transition:opacity 1.6s ease;
+    gap:18px;
+  }
+  .end-card.show{opacity:1;}
+  .end-card .wordmark-static{
+    font-weight:800;letter-spacing:0.2em;
+    font-size:clamp(32px,7vw,72px);
+    color:#fff;
+    text-shadow:0 0 60px var(--glow), 0 0 140px var(--glow-soft);
+  }
+  .end-card .url{
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(11px,1.3vw,15px);
+    color:var(--amber);
+    letter-spacing:0.05em;
+    opacity:0.85;
+  }
+
+  .blackout{
+    position:absolute;inset:0;background:#000;
+    opacity:0;pointer-events:none;
+    transition:opacity 1.4s ease;
+    z-index:5;
+  }
+  .blackout.show{opacity:1;}
+
+  /* Controls */
+  #controls{
+    position:absolute;left:0;right:0;bottom:0;
+    display:flex;align-items:center;gap:14px;
+    padding:14px 18px;
+    z-index:10;
+    background:linear-gradient(0deg, rgba(0,0,0,0.55), transparent);
+  }
+  #playBtn{
+    width:34px;height:34px;border-radius:50%;
+    border:1px solid rgba(228,228,231,0.4);
+    background:rgba(0,0,0,0.3);
+    color:var(--warm);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:13px;
+    flex-shrink:0;
+  }
+  #progress-track{
+    flex:1;height:2px;background:rgba(228,228,231,0.25);
+    position:relative;border-radius:2px;overflow:hidden;
+  }
+  #progress-fill{
+    position:absolute;left:0;top:0;bottom:0;width:0%;
+    background:var(--amber);
+    box-shadow:0 0 10px var(--glow);
+  }
+  #timecode{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;color:rgba(228,228,231,0.7);
+    flex-shrink:0;
+    min-width:70px;
+    text-align:right;
+  }
+
+  #startOverlay{
+    position:absolute;inset:0;z-index:20;
+    background:#050505;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:22px;
+    cursor:pointer;
+  }
+  #startOverlay .cx{
+    font-weight:800;letter-spacing:0.2em;color:#fff;
+    font-size:clamp(30px,6vw,58px);
+    text-shadow:0 0 60px var(--glow);
+  }
+  #startOverlay .hint{
+    font-size:12px;color:rgba(228,228,231,0.6);letter-spacing:0.08em;
+    font-family:'JetBrains Mono',monospace;
+    border:1px solid rgba(240,149,50,0.4);
+    padding:8px 18px;border-radius:999px;
+  }
+</style>
+</head>
+<body>
+
+<div id="stage-wrap">
+  <canvas id="particles"></canvas>
+
+  <div id="text-layer">
+    <div class="line" id="l1">You have a note app.</div>
+    <div class="line" id="l2">A code editor.</div>
+    <div class="line" id="l3">A spreadsheet.</div>
+    <div class="line" id="l4">A whiteboard.</div>
+    <div class="line" id="l5">A todo list.</div>
+    <div class="line" id="l6">A password manager.</div>
+    <div class="line" id="l7">Six tools.</div>
+    <div class="line" id="l8">One mind.</div>
+
+    <div class="wordmark" id="cortexReveal">CORTEX</div>
+
+    <div class="line" id="e1">Everything you think.</div>
+    <div class="line" id="e2">Everything you build.</div>
+    <div class="line" id="e3">Everything you remember.</div>
+    <div class="line" id="e4">One place.</div>
+
+    <div class="accent-dot" id="whiteDot"></div>
+    <div class="white-text" id="whiteText1">Your second brain.</div>
+    <div class="white-text" id="whiteText2">Decentralized.</div>
+
+    <div class="tagline" id="tagline">
+      <span>Your</span><span>second</span><span>brain,</span><span>decentralized.</span>
+    </div>
+
+    <div class="pulse" id="finalPulse"></div>
+  </div>
+
+  <div class="end-card" id="endCard">
+    <div class="wordmark-static">CORTEX</div>
+    <div class="url">cortex-workspace.vercel.app</div>
+  </div>
+
+  <div class="blackout" id="blackout"></div>
+
+  <div id="controls">
+    <button id="playBtn">▶</button>
+    <div id="progress-track"><div id="progress-fill"></div></div>
+    <div id="timecode">0:00 / 1:15</div>
+  </div>
+
+  <div id="startOverlay">
+    <div class="cx">CORTEX</div>
+    <div class="hint">▶ PLAY BRAND FILM · 0:75</div>
+  </div>
+</div>
+
+<script>
+const TOTAL = 75000;
+const stage = document.getElementById('stage-wrap');
+const fill = document.getElementById('progress-fill');
+const timecode = document.getElementById('timecode');
+const playBtn = document.getElementById('playBtn');
+const blackout = document.getElementById('blackout');
+
+// ---------- particle background ----------
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+function resize(){
+  canvas.width = stage.clientWidth;
+  canvas.height = stage.clientHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+function initParticles(){
+  particles = [];
+  const count = Math.floor((canvas.width*canvas.height)/9000);
+  for(let i=0;i<count;i++){
+    particles.push({
+      x:Math.random()*canvas.width,
+      y:Math.random()*canvas.height,
+      r:Math.random()*1.6+0.4,
+      vx:(Math.random()-0.5)*0.08,
+      vy:(Math.random()-0.5)*0.08,
+      a:Math.random()*0.5+0.15
+    });
+  }
+}
+initParticles();
+let convergence = 0; // 0 = scattered, 1 = converged to center
+function drawParticles(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const cx = canvas.width/2, cy = canvas.height*0.46;
+  particles.forEach(p=>{
+    p.x += p.vx; p.y += p.vy;
+    if(p.x<0||p.x>canvas.width) p.vx*=-1;
+    if(p.y<0||p.y>canvas.height) p.vy*=-1;
+    let dx = cx - p.x, dy = cy - p.y;
+    p.x += dx*convergence*0.004;
+    p.y += dy*convergence*0.004;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle = `rgba(240,149,50,${p.a*(1-convergence*0.5)})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+// ---------- helpers ----------
+function show(id){ const el = document.getElementById(id); if(el) el.classList.add('show'); }
+function hide(id){ const el = document.getElementById(id); if(el) el.classList.remove('show'); }
+function at(t, fn){ cues.push({t, fn}); }
+
+// ---------- timeline cues (ms) ----------
+let cues = [];
+
+// Act 1 — fragmentation & problem (0-20s)
+at(500,  ()=>{ convergence = 0; });
+at(3500, ()=> show('l1'));
+at(5300, ()=>{ hide('l1'); show('l2'); });
+at(7100, ()=>{ hide('l2'); show('l3'); });
+at(8900, ()=>{ hide('l3'); show('l4'); });
+at(10700,()=>{ hide('l4'); show('l5'); });
+at(12500,()=>{ hide('l5'); show('l6'); });
+at(14500,()=>{ hide('l6'); show('l7'); });
+at(16800,()=>{ hide('l7'); show('l8'); });
+at(19200,()=> hide('l8'));
+
+// Act 2 — the shift (20-50s)
+at(19500,()=>{ convergence = 1; });
+at(21000,()=> show('cortexReveal'));
+at(27500,()=> hide('cortexReveal'));
+at(28500,()=> show('e1'));
+at(31300,()=>{ hide('e1'); show('e2'); });
+at(34100,()=>{ hide('e2'); show('e3'); });
+at(36900,()=>{ hide('e3'); show('e4'); });
+at(39500,()=> hide('e4'));
+
+at(41500,()=>{ // cut to white
+  stage.classList.add('white-mode');
+  convergence = 0.2;
+});
+at(42800,()=> show('whiteDot'));
+at(44000,()=> show('whiteText1'));
+at(46500,()=>{ hide('whiteText1'); show('whiteText2'); });
+at(49000,()=>{ hide('whiteText2'); hide('whiteDot'); });
+
+// Act 3 — the declaration (50-75s)
+at(49800,()=>{ stage.classList.remove('white-mode'); });
+at(51500,()=> document.querySelectorAll('#tagline span')[0].classList.add('show'));
+at(52700,()=> document.querySelectorAll('#tagline span')[1].classList.add('show'));
+at(53900,()=> document.querySelectorAll('#tagline span')[2].classList.add('show'));
+at(55300,()=> document.querySelectorAll('#tagline span')[3].classList.add('show'));
+at(60500,()=>{
+  document.querySelectorAll('#tagline span').forEach(s=>s.classList.remove('show'));
+});
+at(61000,()=>{
+  const pulse = document.getElementById('finalPulse');
+  pulse.style.left = '50%'; pulse.style.top='46%';
+  pulse.classList.add('fire');
+});
+at(63500,()=> blackout.classList.add('show'));
+at(66000,()=>{ blackout.classList.remove('show'); convergence = 0; });
+at(67000,()=> show('endCard'));
+at(75000,()=>{ /* end */ });
+
+// ---------- playback engine ----------
+let startTime = null;
+let rafId = null;
+let played = new Set();
+let playing = false;
+
+function fmt(ms){
+  const s = Math.floor(ms/1000);
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function tick(now){
+  if(!playing) return;
+  const elapsed = now - startTime;
+  const clamped = Math.min(elapsed, TOTAL);
+  fill.style.width = (clamped/TOTAL*100) + '%';
+  timecode.textContent = `${fmt(clamped)} / 1:15`;
+
+  cues.forEach((c,i)=>{
+    if(elapsed >= c.t && !played.has(i)){
+      played.add(i);
+      c.fn();
+    }
+  });
+
+  if(elapsed < TOTAL){
+    rafId = requestAnimationFrame(tick);
+  } else {
+    playing = false;
+    playBtn.textContent = '↺';
+  }
+}
+
+function playFrom(offset){
+  startTime = performance.now() - offset;
+  playing = true;
+  playBtn.textContent = '❚❚';
+  rafId = requestAnimationFrame(tick);
+}
+
+function resetAll(){
+  document.querySelectorAll('.show').forEach(el=>el.classList.remove('show'));
+  stage.classList.remove('white-mode');
+  blackout.classList.remove('show');
+  document.getElementById('finalPulse').classList.remove('fire');
+  played = new Set();
+  convergence = 0;
+  fill.style.width = '0%';
+  timecode.textContent = '0:00 / 1:15';
+}
+
+playBtn.addEventListener('click', ()=>{
+  if(playing){
+    playing = false;
+    cancelAnimationFrame(rafId);
+    playBtn.textContent = '▶';
+  } else {
+    if(playBtn.textContent === '↺'){
+      resetAll();
+      playFrom(0);
+    } else {
+      const elapsedSoFar = parseFloat(fill.style.width||'0')/100*TOTAL;
+      playFrom(elapsedSoFar);
+    }
+  }
+});
+
+document.getElementById('startOverlay').addEventListener('click', function(){
+  this.style.display = 'none';
+  resetAll();
+  playFrom(0);
+});
+</script>
+
+</body>
+</html>

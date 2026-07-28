@@ -1,0 +1,59 @@
+Cortex: A Vision for the Future of Human Knowledge
+
+Introduction
+
+Cortex is not being built to become another note-taking application, another integrated development environment, another whiteboard, another AI chatbot, or another productivity suite. While it may eventually contain the capabilities of all these tools, they are merely components of a much larger vision. The true objective of Cortex is to fundamentally redefine how humans create, organize, evolve, and interact with knowledge.
+
+For decades, software has been designed around files and applications. A document belongs in a document editor. Code belongs in an IDE. Designs belong in a design tool. Data belongs in spreadsheets or databases. Tasks belong in project management software. Conversations belong in messaging applications. Research exists in browser tabs. Every idea becomes fragmented across dozens of disconnected systems.
+
+Humans, however, do not think this way.
+
+We do not think in folders, file paths, or application boundaries. We think in ideas, projects, goals, businesses, products, research questions, and problems to solve. When working on a startup, for example, our brain naturally connects architecture diagrams, market research, meeting notes, source code, customer interviews, financial models, roadmaps, prototypes, and future ideas into one coherent mental model. Modern software breaks this mental model apart by forcing each piece into a different application.
+
+Cortex exists to eliminate that fragmentation.
+
+Instead of treating files as the primary unit of organization, Cortex treats knowledge itself as the fundamental building block. Every note, code snippet, whiteboard, spreadsheet, PDF, image, AI conversation, voice recording, research paper, diagram, database, and document becomes a connected object inside a unified knowledge ecosystem. Rather than existing as isolated artifacts, every object understands its relationship with every other object.
+
+At the center of this ecosystem is Neo.
+
+Neo is not intended to be another chatbot waiting for prompts. Neo is the intelligence that continuously understands the entire workspace. Every note written, every line of code created, every whiteboard drawn, every diagram edited, every dataset imported, every project planned, and every conversation held contributes to Neo’s understanding of the user’s evolving knowledge. Instead of forgetting previous work like conventional AI assistants, Neo develops persistent contextual understanding that grows richer over time.
+
+Initially, Neo functions as an intelligent assistant capable of searching, explaining, coding, summarizing, organizing, and reasoning about everything inside Cortex. However, this is only the beginning.
+
+As Cortex matures, Neo evolves into an active collaborator. It begins identifying patterns across months or years of work. It notices recurring problems, repeated architectural decisions, abandoned ideas worth revisiting, duplicated implementations across projects, inconsistencies between documentation and code, opportunities for abstraction, forgotten research that has become relevant again, and hidden relationships between seemingly unrelated projects. Instead of merely answering questions, Neo begins asking the questions users didn’t realize they needed to ask.
+
+This represents a fundamental shift from reactive artificial intelligence to proactive intelligence.
+
+The workspace itself also evolves beyond traditional documents. Instead of organizing information through folders and files, Cortex introduces Projects as living knowledge containers. A project is not simply a directory containing documents. It is a living representation of an idea. Every project naturally contains notes, source code, diagrams, tasks, AI conversations, datasets, research, financial models, design assets, documentation, decisions, timelines, experiments, and every other artifact required to bring that idea to life. Projects become dynamic knowledge ecosystems rather than collections of files.
+
+Every interaction inside Cortex contributes to an evolving knowledge graph. This graph does not merely record what exists—it understands why it exists, how it evolved, what it relates to, who created it, which decisions influenced it, and how it may become useful in the future.
+
+Over time, Cortex extends beyond knowledge created within its own environment. Through explicit user-controlled integrations, external systems such as source code repositories, cloud storage, calendars, documentation platforms, design tools, communication systems, and databases can become part of the same semantic knowledge graph. Cortex does not seek to replace these specialized tools; instead, it becomes the intelligent layer that understands the relationships between them. The value lies not in replacing existing software but in connecting it into one coherent model of understanding.
+
+The philosophy behind Cortex can be summarized by one principle:
+
+Knowledge should compound.
+
+Today’s software stores information. Cortex aims to increase its value over time.
+
+Every piece of knowledge should become easier to find, easier to understand, easier to connect, easier to reuse, and increasingly valuable with every interaction. A note written today should help solve a problem years later. A solution built for one project should naturally appear when another project encounters the same challenge. An architectural decision made months ago should never disappear into forgotten documentation. Every project should strengthen every future project rather than forcing users to repeatedly rediscover what they already know.
+
+Neo serves as the catalyst for this compounding process. By continuously understanding relationships, context, history, and intent, Neo transforms isolated information into an interconnected intellectual system that becomes progressively more useful as it grows.
+
+This philosophy extends beyond individuals. As Cortex evolves, organizations themselves gain a form of institutional memory. Teams no longer lose knowledge when employees leave. Decisions retain their reasoning. Design choices remain connected to implementation. Documentation remains synchronized with reality. Organizational knowledge becomes a living system rather than a collection of static documents.
+
+Ultimately, Cortex is not attempting to automate human thinking or replace human creativity. Its purpose is to amplify both.
+
+The long-term ambition is to create software that becomes an extension of human cognition—a place where ideas are never lost, where context is never forgotten, where knowledge naturally compounds, and where every interaction contributes to a richer understanding of the past while enabling better decisions for the future.
+
+If successful, people will not think of Cortex as a note-taking application or even as an AI workspace. They will think of it as the environment in which meaningful intellectual work happens. The question will no longer be, “Where did I save that file?” but rather, “What do I know, how has it evolved, and what should I do next?”
+
+The ultimate mission of Cortex is simple:
+
+To ensure that every piece of knowledge a person creates becomes more valuable with time instead of being forgotten, duplicated, or disconnected.
+
+Every feature, every engineering decision, every design choice, and every future innovation should be evaluated against this single principle. If it helps knowledge compound, it belongs in Cortex. If it does not, it should be questioned.
+
+Cortex is therefore not building software for writing notes.
+
+It is building the intellectual infrastructure through which humans will think, create, build, and preserve knowledge for decades to come.
