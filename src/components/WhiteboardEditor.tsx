@@ -58,6 +58,7 @@ interface Point {
 interface Stroke {
   color: string;
   points: Point[];
+  isEraser?: boolean;
 }
 
 interface LaserPoint extends Point {
@@ -335,7 +336,7 @@ export default function WhiteboardEditor({
   const mainCanvasRef = useRef<HTMLCanvasElement>(null);
   const laserCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [tool, setTool] = useState<"pen" | "laser">("pen");
+  const [tool, setTool] = useState<"pen" | "laser" | "eraser">("pen");
   const [color, setColor] = useState<string>("#f09532");
   // bgType is now per-page, driven by props
   const bgType = currentBgType;
@@ -431,15 +432,24 @@ export default function WhiteboardEditor({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.lineWidth = 3;
 
     strokes.forEach(stroke => {
       if (stroke.points.length === 0) return;
-      ctx.strokeStyle = stroke.color;
       ctx.beginPath();
       ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
       stroke.points.forEach(p => ctx.lineTo(p.x, p.y));
-      ctx.stroke();
+      
+      if (stroke.isEraser) {
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.lineWidth = 20;
+        ctx.strokeStyle = "rgba(0,0,0,1)";
+        ctx.stroke();
+        ctx.globalCompositeOperation = "source-over";
+      } else {
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
     });
   };
 
@@ -501,8 +511,8 @@ export default function WhiteboardEditor({
     isDrawingRef.current = true;
     const { x, y } = getCoordinates(e);
 
-    if (tool === "pen") {
-      currentStrokeRef.current = { color, points: [{ x, y }] };
+    if (tool === "pen" || tool === "eraser") {
+      currentStrokeRef.current = { color, points: [{ x, y }], isEraser: tool === "eraser" };
     } else if (tool === "laser") {
       laserPointsRef.current.push({ x, y, timestamp: Date.now() });
     }
@@ -515,7 +525,7 @@ export default function WhiteboardEditor({
     if (!isDrawingRef.current) return;
     const { x, y } = getCoordinates(e);
 
-    if (tool === "pen" && currentStrokeRef.current) {
+    if ((tool === "pen" || tool === "eraser") && currentStrokeRef.current) {
       currentStrokeRef.current.points.push({ x, y });
       
       // Draw live on main canvas
@@ -523,8 +533,17 @@ export default function WhiteboardEditor({
       if (ctx) {
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = color;
+        
+        if (tool === "eraser") {
+          ctx.globalCompositeOperation = "destination-out";
+          ctx.lineWidth = 20;
+          ctx.strokeStyle = "rgba(0,0,0,1)";
+        } else {
+          ctx.globalCompositeOperation = "source-over";
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = color;
+        }
+
         const points = currentStrokeRef.current.points;
         const last = points[points.length - 2];
         const current = points[points.length - 1];
@@ -534,6 +553,7 @@ export default function WhiteboardEditor({
           ctx.lineTo(current.x, current.y);
           ctx.stroke();
         }
+        ctx.globalCompositeOperation = "source-over";
       }
     } else if (tool === "laser") {
       laserPointsRef.current.push({ x, y, timestamp: Date.now() });
@@ -544,7 +564,7 @@ export default function WhiteboardEditor({
     isDrawingRef.current = false;
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
 
-    if (tool === "pen" && currentStrokeRef.current) {
+    if ((tool === "pen" || tool === "eraser") && currentStrokeRef.current) {
       saveStrokes([...strokes, currentStrokeRef.current]);
       currentStrokeRef.current = null;
     }
@@ -578,6 +598,12 @@ export default function WhiteboardEditor({
             ✎ Pen
           </button>
           <button 
+            onClick={() => setTool("eraser")}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${tool === "eraser" ? 'bg-[var(--color-cortex-amberGlow)] text-[var(--color-cortex-amber)] border border-[var(--color-cortex-amberBorder)]' : 'text-[var(--color-cortex-muted)] hover:text-[var(--color-cortex-text)]'}`}
+          >
+            ▱ Eraser
+          </button>
+          <button 
             onClick={() => setTool("laser")}
             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${tool === "laser" ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'text-[var(--color-cortex-muted)] hover:text-[var(--color-cortex-text)]'}`}
           >
@@ -594,8 +620,8 @@ export default function WhiteboardEditor({
             type="color" 
             value={color}
             onChange={(e) => setColor(e.target.value)}
-            disabled={tool === "laser"}
-            className={`w-7 h-7 rounded cursor-pointer border-0 p-0 outline-none bg-transparent ${tool === 'laser' ? 'opacity-30' : ''}`}
+            disabled={tool === "laser" || tool === "eraser"}
+            className={`w-7 h-7 rounded cursor-pointer border-0 p-0 outline-none bg-transparent ${(tool === 'laser' || tool === 'eraser') ? 'opacity-30' : ''}`}
             style={{ WebkitAppearance: 'none' }}
           />
         </div>
