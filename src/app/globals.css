@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @theme {
   --color-cortex-bg: #07070a;
@@ -111,4 +112,32 @@ input {
   border: none;
   outline: none;
   background: none;
+}
+
+/* ── Markdown Preview Typography Overrides ── */
+.prose {
+  --tw-prose-body: var(--color-cortex-text);
+  --tw-prose-headings: #ffffff;
+  --tw-prose-links: var(--color-cortex-amber);
+  --tw-prose-bold: #ffffff;
+  --tw-prose-counters: var(--color-cortex-muted);
+  --tw-prose-bullets: var(--color-cortex-muted);
+  --tw-prose-hr: var(--color-cortex-border);
+  --tw-prose-quotes: var(--color-cortex-muted);
+  --tw-prose-quote-borders: var(--color-cortex-amber);
+  --tw-prose-captions: var(--color-cortex-muted);
+  --tw-prose-code: var(--color-cortex-green);
+  --tw-prose-pre-code: var(--color-cortex-text);
+  --tw-prose-pre-bg: var(--color-cortex-elevated);
+  --tw-prose-th-borders: var(--color-cortex-border);
+  --tw-prose-td-borders: var(--color-cortex-border);
+}
+
+.prose pre {
+  border: 1px solid var(--color-cortex-border);
+  border-radius: 8px;
+}
+
+.prose a:hover {
+  color: #ffb86c;
 }

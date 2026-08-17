@@ -19,6 +19,7 @@
     "@clerk/nextjs": "^7.5.16",
     "@monaco-editor/react": "^4.7.0",
     "@supabase/supabase-js": "^2.105.4",
+    "@tailwindcss/typography": "^0.5.20",
     "@tiptap/extension-image": "^3.23.1",
     "@tiptap/extension-table": "^3.23.1",
     "@tiptap/extension-table-cell": "^3.23.1",
@@ -35,7 +36,9 @@
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
     "recharts": "^3.8.1",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.4.3"
   },

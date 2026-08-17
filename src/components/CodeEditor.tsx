@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Editor from "@monaco-editor/react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function CodeEditor({ 
   content, 
@@ -11,15 +14,19 @@ export default function CodeEditor({
   fileName: string; 
   onChange: (val: string) => void;
 }) {
+  const [isPreview, setIsPreview] = useState(false);
+
   // Determine language based on extension
   let language = "javascript";
-  if (fileName.endsWith('.py')) language = "python";
-  if (fileName.endsWith('.cpp') || fileName.endsWith('.h')) language = "cpp";
-  if (fileName.endsWith('.m')) language = "matlab"; 
-  if (fileName.endsWith('.sql')) language = "sql";
-  if (fileName.endsWith('.html')) language = "html";
-  if (fileName.endsWith('.css')) language = "css";
-  if (fileName.endsWith('.ts') || fileName.endsWith('.tsx')) language = "typescript";
+  const lowerName = fileName.toLowerCase();
+  if (lowerName.endsWith('.py')) language = "python";
+  if (lowerName.endsWith('.cpp') || lowerName.endsWith('.h')) language = "cpp";
+  if (lowerName.endsWith('.m')) language = "matlab"; 
+  if (lowerName.endsWith('.sql')) language = "sql";
+  if (lowerName.endsWith('.html')) language = "html";
+  if (lowerName.endsWith('.css')) language = "css";
+  if (lowerName.endsWith('.ts') || lowerName.endsWith('.tsx')) language = "typescript";
+  if (lowerName.endsWith('.md')) language = "markdown";
 
   const handleEditorWillMount = (monaco: any) => {
     // 1. Define MATLAB syntax
@@ -79,38 +86,67 @@ export default function CodeEditor({
   };
 
   return (
-    <div className="flex-1 w-full h-full bg-transparent">
-      <Editor
-        height="100%"
-        defaultLanguage={language}
-        language={language}
-        value={content}
-        theme="cortex-cyberpunk"
-        beforeMount={handleEditorWillMount}
-        onChange={(val) => onChange(val || '')}
-        loading={
-          <div style={{ 
-            height: '100%', width: '100%', display: 'flex', 
-            alignItems: 'center', justifyContent: 'center', 
-            color: 'var(--color-cortex-muted)' 
-          }}>
-            Initializing Neural Uplink...
+    <div className="flex-1 w-full h-full bg-transparent flex flex-col relative">
+      {language === "markdown" && (
+        <div className="absolute top-4 right-10 z-[100] flex gap-1 bg-cortex-elevated rounded-md border border-cortex-border p-1 shadow-2xl">
+          <button
+            onClick={() => setIsPreview(false)}
+            className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+              !isPreview ? "bg-cortex-faint text-cortex-amber" : "text-cortex-muted hover:text-white"
+            }`}
+          >
+            Code
+          </button>
+          <button
+            onClick={() => setIsPreview(true)}
+            className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+              isPreview ? "bg-cortex-faint text-cortex-amber" : "text-cortex-muted hover:text-white"
+            }`}
+          >
+            Preview
+          </button>
+        </div>
+      )}
+      
+      {isPreview ? (
+        <div className="flex-1 overflow-auto p-8 bg-transparent">
+          <div className="prose prose-invert max-w-none">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
           </div>
-        }
-        options={{
-          fontFamily: "'JetBrains Mono', 'Courier New', monospace",
-          fontSize: 14,
-          minimap: { enabled: false }, // Disabled
-          padding: { top: 24, bottom: 24 },
-          lineHeight: 1.6,
-          scrollBeyondLastLine: false,
-          smoothScrolling: true,
-          cursorBlinking: "smooth",
-          cursorSmoothCaretAnimation: "on",
-          renderLineHighlight: "all",
-          wordWrap: 'on'
-        }}
-      />
+        </div>
+      ) : (
+        <Editor
+          height="100%"
+          defaultLanguage={language}
+          language={language}
+          value={content}
+          theme="cortex-cyberpunk"
+          beforeMount={handleEditorWillMount}
+          onChange={(val) => onChange(val || '')}
+          loading={
+            <div style={{ 
+              height: '100%', width: '100%', display: 'flex', 
+              alignItems: 'center', justifyContent: 'center', 
+              color: 'var(--color-cortex-muted)' 
+            }}>
+              Initializing Neural Uplink...
+            </div>
+          }
+          options={{
+            fontFamily: "'JetBrains Mono', 'Courier New', monospace",
+            fontSize: 14,
+            minimap: { enabled: false }, // Disabled
+            padding: { top: 24, bottom: 24 },
+            lineHeight: 1.6,
+            scrollBeyondLastLine: false,
+            smoothScrolling: true,
+            cursorBlinking: "smooth",
+            cursorSmoothCaretAnimation: "on",
+            renderLineHighlight: "all",
+            wordWrap: 'on'
+          }}
+        />
+      )}
     </div>
   );
 }
