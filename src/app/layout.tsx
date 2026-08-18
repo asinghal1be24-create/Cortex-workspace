@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { VaultProvider } from "@/context/VaultContext";
@@ -38,6 +39,12 @@ export default function RootLayout({
     <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
         <body>
+          <Script 
+            src="https://www.dropbox.com/static/api/2/dropins.js" 
+            id="dropboxjs" 
+            data-app-key={process.env.NEXT_PUBLIC_DROPBOX_APP_KEY}
+            strategy="beforeInteractive"
+          />
           <VaultProvider>
             {children}
           </VaultProvider>

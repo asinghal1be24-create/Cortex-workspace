@@ -94,6 +94,52 @@ export default function Home() {
     }
   };
 
+  const handleDropboxImport = () => {
+    if (typeof window === "undefined" || !(window as any).Dropbox) {
+      alert("Dropbox integration is still loading or unavailable.");
+      return;
+    }
+
+    (window as any).Dropbox.choose({
+      success: async (dropboxFiles: any[]) => {
+        const newWorkspaceFiles: WorkspaceFile[] = [];
+        const newPagesEntries: Record<string, PageEntry[]> = {};
+        
+        for (const file of dropboxFiles) {
+          try {
+            const res = await fetch(file.link);
+            if (!res.ok) throw new Error(`Failed to fetch ${file.name}`);
+            const textContent = await res.text();
+            
+            const fileId = Date.now().toString() + Math.random().toString(36).substring(2, 9);
+            newWorkspaceFiles.push({
+              id: fileId,
+              name: file.name,
+              content: textContent,
+            });
+            newPagesEntries[fileId] = [{ id: 1, content: textContent, bgType: 'dotted' }];
+          } catch (err) {
+            console.error(err);
+            alert(`Error importing ${file.name}`);
+          }
+        }
+        
+        if (newWorkspaceFiles.length > 0) {
+          setPagesMap(prev => ({ ...prev, ...newPagesEntries }));
+          setFiles(prev => [...prev, ...newWorkspaceFiles]);
+          setActiveFileId(newWorkspaceFiles[0].id);
+          setShowSyncDropdown(false);
+          setSaveFlash(true);
+          setTimeout(() => setSaveFlash(false), 1800);
+        }
+      },
+      cancel: () => {},
+      linkType: "direct", 
+      multiselect: true,
+      extensions: ['.md', '.txt', '.json', '.csv', '.ts', '.js'], 
+    });
+  };
+
   const handleMountDirectory = async () => {
     try {
       if (typeof window === "undefined" || !('showDirectoryPicker' in window)) {
@@ -1096,6 +1142,39 @@ export default function Home() {
                         }}
                       >
                         {isExporting ? 'Compiling...' : 'Download ZIP'}
+                      </button>
+                    </div>
+
+                    {/* Dropbox Importer */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4, paddingTop: 10, borderTop: `1px solid ${B.border}` }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: B.text }}>☁️ Dropbox Import</div>
+                      <div style={{ fontSize: 9, color: B.muted, lineHeight: 1.3 }}>Seamlessly import .md and .txt files directly from your Dropbox.</div>
+                      <button
+                        onClick={handleDropboxImport}
+                        style={{
+                          marginTop: 4,
+                          padding: '6px 8px',
+                          borderRadius: 5,
+                          fontSize: 10,
+                          fontWeight: 600,
+                          background: 'rgba(0, 97, 254, 0.15)',
+                          color: '#0061FE',
+                          border: `1px solid rgba(0, 97, 254, 0.3)`,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                          textAlign: 'center',
+                          width: '100%',
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          gap: 6
+                        }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12.01 2.375L4.417 7.292L12.01 12.208L19.583 7.292L12.01 2.375ZM4.417 17.125L12.01 22.042L19.583 17.125L12.01 12.208L4.417 17.125Z"/>
+                          <path d="M4.417 7.292L-0.000305176 10.125L7.59269 15.042L12.01 12.208L4.417 7.292ZM19.583 7.292L12.01 12.208L16.427 15.042L24.02 10.125L19.583 7.292Z"/>
+                        </svg>
+                        Import from Dropbox
                       </button>
                     </div>
 
