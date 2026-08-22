@@ -1,4 +1,4 @@
-import { groq } from '@ai-sdk/groq';
+import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { checkRateLimit, createRateLimitResponse } from '@/lib/rateLimit';
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
     // 4. Execute AI Generation
     const result = await generateText({
-      model: groq('llama-3.3-70b-versatile'),
+      model: google('gemini-2.5-flash'),
       prompt: `You are Cortex's Data Bridge router. 
 The user is typing natural language to log an expense or data point.
 Your job is to extract the target filename, the amount (as a raw number string without currency symbols), and the category.

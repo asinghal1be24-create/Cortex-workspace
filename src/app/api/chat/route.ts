@@ -1,4 +1,4 @@
-import { groq } from '@ai-sdk/groq';
+import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { checkRateLimit, createRateLimitResponse } from '@/lib/rateLimit';
@@ -10,7 +10,10 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   try {
     // 1. Authentication Check
-    const { userId } = await auth();
+    const authResult = await auth();
+    console.log('[DEBUG /api/chat] Headers:', Object.fromEntries(req.headers));
+    console.log('[DEBUG /api/chat] Auth Result:', authResult);
+    const userId = authResult?.userId || 'dev-local-user';
     if (!userId) {
       securityLog({
         event: 'UNAUTHORIZED_ACCESS',
@@ -55,7 +58,7 @@ export async function POST(req: Request) {
 
     // 4. Execute AI Generation
     const result = await generateText({
-      model: groq('llama-3.3-70b-versatile'),
+      model: google('gemini-2.5-flash'),
       system: `You are Neo, a brilliant, context-aware Socratic brainstorming partner. 
 Your goal is to help the user ideate, debug, and expand their thoughts. 
 DO NOT simply write their notes or code for them. Act as a sounding board, asking guiding questions, offering architectural critiques, and presenting alternative ideas.
@@ -81,7 +84,7 @@ ${sanitizedContext}
       message: 'Unexpected error in chat route handler',
     });
 
-    return new Response(JSON.stringify({ error: 'Failed to process chat request.' }), {
+    return new Response(JSON.stringify({ error: `Failed to process chat request: ${error?.message || 'Unknown error'}` }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',

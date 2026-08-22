@@ -1,4 +1,4 @@
-import { groq } from '@ai-sdk/groq';
+import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { checkRateLimit, createRateLimitResponse } from '@/lib/rateLimit';
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
     // 4. Execute AI Generation
     const result = await generateText({
-      model: groq('llama-3.3-70b-versatile'),
+      model: google('gemini-2.5-flash'),
       prompt: `You are Cortex's unified Speech and Intent Router.
 The user has dictated voice or typed natural language. Your job is to classify their intent, correct any speech-to-text typos semantically, and parse the data.
 

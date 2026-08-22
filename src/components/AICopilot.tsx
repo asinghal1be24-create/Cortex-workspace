@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 
 interface AICopilotProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const { getToken } = useAuth();
 
   const [width, setWidth] = useState(() => {
     if (typeof window !== "undefined") {
@@ -110,9 +112,13 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
     const apiBase = isCapacitor ? 'https://cortex-workspace.vercel.app' : '';
 
     try {
+      const token = await getToken();
       const res = await fetch(`${apiBase}/api/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           messages: newMessages,
           contextText: buildContext()
@@ -245,7 +251,7 @@ export default function AICopilot({ isOpen, onClose, activeFileName, activeFileC
         )}
         {error && (
           <div style={{ fontSize: 12, color: '#ff4d4d', background: 'rgba(255,77,77,0.1)', padding: '8px', borderRadius: '4px' }}>
-            Connection Error: {error.message || "Failed to reach Groq API."}
+            Connection Error: {error.message || "Failed to reach Google API."}
           </div>
         )}
         <div ref={messagesEndRef} />
